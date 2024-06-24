@@ -167,3 +167,74 @@
         {id: 60, label: "H2H TPA2", title: "node 60 tooltip Text"},
         {id: 61, label: "H2H Paysource Delivery TPA", title: "node 61 tooltip Text"},
         {id: 62, label: "WPI", title: "node 62 tooltip Text"},
+
+
+
+ChatGPT
+ the number of edges pointing to each node
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vis.js Dynamic Node Size</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <style>
+        #mynetwork {
+            width: 600px;
+            height: 400px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+<div id="mynetwork"></div>
+<script type="text/javascript">
+    // Define the nodes
+    var nodes = new vis.DataSet([
+        { id: 1, label: 'Node 1' },
+        { id: 2, label: 'Node 2' },
+        { id: 3, label: 'Node 3' },
+        { id: 4, label: 'Node 4' },
+        { id: 5, label: 'Node 5' }
+    ]);
+
+    // Define the edges
+    var edges = new vis.DataSet([
+        { from: 1, to: 3 },
+        { from: 2, to: 3 },
+        { from: 4, to: 3 },
+        { from: 5, to: 3 },
+        { from: 1, to: 2 },
+        { from: 2, to: 5 }
+    ]);
+
+    // Create a network
+    var container = document.getElementById('mynetwork');
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+    var options = {
+        nodes: {
+            shape: 'dot',
+            size: 10
+        }
+    };
+    var network = new vis.Network(container, data, options);
+
+    // Adjust node sizes based on the number of incoming edges
+    var edgeCount = {};
+
+    edges.forEach(function(edge) {
+        if (edgeCount[edge.to]) {
+            edgeCount[edge.to]++;
+        } else {
+            edgeCount[edge.to] = 1;
+        }
+    });
+
+    nodes.forEach(function(node) {
+        if (edgeCount[node.id] > 3) {
+            nodes.update({ id: node.id, size: 30 }); // Increase size if more than 3 edges
+        }
+    });
