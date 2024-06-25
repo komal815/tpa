@@ -539,3 +539,147 @@ public class Color {
     private String color;
     private String background;
 }
+
+ChatGPT
+
+public List<GraphEdge> getAllEdges(){
+        return List.of(
+
+//                GraphEdge.builder().id(1).from(1).to(2).label("Edge 1").color(Color.builder().color("green").build()).build(),
+//                GraphEdge.builder().id(2).from(2).to(3).label("Edge 1").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(3).from(3).to(4).label("TPA1").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(4).from(1).to(5).label("TPA2").color(Color.builder().color("Black").build()).smooth(
+//                                        Smooth.builder().enabled(true).type("curvedCW").roundness(0.2).build()).build(),
+//                GraphEdge.builder().id(5).from(5).to(4).label("Edge 1").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(6).from(4).to(6).label("HR Cnfirm MR Cnfrm").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(7).from(6).to(1).label("HR Cnfirm MR Cnfrm").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(8).from(4).to(7).label("ISO Format Ack").color(Color.builder().color("Black").build()).smooth(
+//                                                Smooth.builder().enabled(true).type("curvedCW").roundness(0.2).build()).build()
+                GraphEdge.builder().id(1).from(1).to(4).label("").color(Color.builder().color("black").build()).build(),
+                GraphEdge.builder().id(2).from(2).to(4).label("").color(Color.builder().color("black").build()).build(),
+                GraphEdge.builder().id(3).from(3).to(4).label("").color(Color.builder().color("black").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(4).from(1).to(5).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(5).from(5).to(6).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(6).from(6).to(13).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(7).from(4).to(7).label("TPA1").color(Color.builder().color("green").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(8).from(7).to(8).label("").color(Color.builder().color("green").build()).smooth(
+                        Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(9).from(7).to(9).label("").color(Color.builder().color("green").build()).smooth(
+                        Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(10).from(7).to(10).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(11).from(8).to(13).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(12).from(9).to(13).label("").color(Color.builder().color("green").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(13).from(10).to(13).label("").color(Color.builder().color("green").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(14).from(13).to(11).label("HR Cnfrm MR Cnfrm").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(15).from(11).to(3).label("HR/MR Cnfrm Ack").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(17).from(12).to(2).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(18).from(11).to(1).label("HR Cnfrm MR Cnfrm").color(Color.builder().color("green").build()).build()
+        );
+
+    }
+@Data
+@Builder
+public class GraphEdge {
+    private Integer id;
+    private Integer from;
+    private Integer to;
+    private String label;
+    private Color color;
+    private Smooth smooth;
+
+}
+
+
+@Data
+@Builder
+public class Smooth {
+    private boolean enabled;
+    private String type;
+    private double roundness;
+}
+
+@Data
+@Builder
+public class Color {
+    private String color;
+    private String background;
+}
+
+
+Junits for above class
+ChatGPT
+To create JUnit tests for the getAllEdges method and the related classes (GraphEdge, Smooth, Color), you need to ensure that your tests cover the creation and properties of the edges, the smoothness, and the color. Here’s how you can write these tests:
+
+Maven Dependencies
+Ensure you have the required dependencies for JUnit and lombok in your pom.xml if you're using Maven:
+
+xml
+Copy code
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter-api</artifactId>
+    <version>5.9.3</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter-engine</artifactId>
+    <version>5.9.3</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.26</version>
+    <scope>provided</scope>
+</dependency>
+JUnit Test Class
+Create a JUnit test class, e.g., GraphEdgeTest.java:
+
+java
+Copy code
+import org.junit.jupiter.api.Test;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class GraphEdgeTest {
+
+    @Test
+    public void testGetAllEdges() {
+        List<GraphEdge> edges = getAllEdges();
+
+        assertNotNull(edges, "The edges list should not be null.");
+        assertEquals(18, edges.size(), "The number of edges should be 18.");
+
+        GraphEdge edge1 = edges.get(0);
+        assertEquals(1, edge1.getId());
+        assertEquals(1, edge1.getFrom());
+        assertEquals(4, edge1.getTo());
+        assertEquals("black", edge1.getColor().getColor());
+        assertNull(edge1.getSmooth(), "The smooth property should be null.");
+
+        GraphEdge edge3 = edges.get(2);
+        assertEquals(3, edge3.getId());
+        assertEquals(3, edge3.getFrom());
+        assertEquals(4, edge3.getTo());
+        assertEquals("black", edge3.getColor().getColor());
+        assertNotNull(edge3.getSmooth(), "The smooth property should not be null.");
+        assertTrue(edge3.getSmooth().isEnabled());
+        assertEquals("curvedCW", edge3.getSmooth().getType());
+        assertEquals(-0.3, edge3.getSmooth().getRoundness(), 0.0001);
+
+        GraphEdge edge14 = edges.get(13);
+        assertEquals(14, edge14.getId());
+        assertEquals(13, edge14.getFrom());
+        assertEquals(11, edge14.getTo());
+        assertEquals("green", edge14.getColor().getColor());
+        assertEquals("HR Cnfrm MR Cnfrm", edge14.getLabel());
+
+        // Additional assertions for other edges can be added similarly
+    }
+
+
