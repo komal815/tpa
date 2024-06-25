@@ -238,3 +238,48 @@ ChatGPT
             nodes.update({ id: node.id, size: 30 }); // Increase size if more than 3 edges
         }
     });
+
+
+  public List<GraphNode> getAllNodes(){
+        return List.of(
+//                GraphNode.builder().id(1).label("Client").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+//                GraphNode.builder().id(2).label("H2H Online").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(3).label("H2H Online Released").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(4).label("Paysource").title("node 1 tooltip Text").color(Color.builder().background("#CF9FFF").build()).build(),
+//                GraphNode.builder().id(5).label("Standard TPA").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(6).label("Ack Delivery").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(7).label("Ack Formatter").title("node 1 tooltip Text").build()
+                GraphNode.builder().id(1).label("Client 1").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+                GraphNode.builder().id(2).label("Client 2").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+                GraphNode.builder().id(3).label("Client 3").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+                GraphNode.builder().id(4).label("Aggregator").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).build(),
+                GraphNode.builder().id(5).label("H2H Online").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(6).label("AFS Released").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(7).label("DropBox TPA").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(8).label("Client 1").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(9).label("Client 2").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(10).label("Client 3").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(11).label("Ack Delivery").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(13).label("Paysource").title("node 1 tooltip Text").color(Color.builder().background("#CF9FFF").build()).build()
+        );
+    }
+
+
+@Data
+@Builder
+public class GraphNode {
+
+    private Integer id;
+    private String label;
+    private Boolean fixed;
+    private String title;
+    private Color color;
+}
+
+
+@Data
+@Builder
+public class Color {
+    private String color;
+    private String background;
+}
