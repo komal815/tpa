@@ -471,3 +471,71 @@ public class GraphNodeTest {
         assertEquals("#CF9FFF", node13.getColor().getBackground());
     }
 }
+
+
+public List<GraphEdge> getAllEdges(){
+        return List.of(
+
+//                GraphEdge.builder().id(1).from(1).to(2).label("Edge 1").color(Color.builder().color("green").build()).build(),
+//                GraphEdge.builder().id(2).from(2).to(3).label("Edge 1").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(3).from(3).to(4).label("TPA1").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(4).from(1).to(5).label("TPA2").color(Color.builder().color("Black").build()).smooth(
+//                                        Smooth.builder().enabled(true).type("curvedCW").roundness(0.2).build()).build(),
+//                GraphEdge.builder().id(5).from(5).to(4).label("Edge 1").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(6).from(4).to(6).label("HR Cnfirm MR Cnfrm").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(7).from(6).to(1).label("HR Cnfirm MR Cnfrm").color(Color.builder().color("Black").build()).build(),
+//                GraphEdge.builder().id(8).from(4).to(7).label("ISO Format Ack").color(Color.builder().color("Black").build()).smooth(
+//                                                Smooth.builder().enabled(true).type("curvedCW").roundness(0.2).build()).build()
+                GraphEdge.builder().id(1).from(1).to(4).label("").color(Color.builder().color("black").build()).build(),
+                GraphEdge.builder().id(2).from(2).to(4).label("").color(Color.builder().color("black").build()).build(),
+                GraphEdge.builder().id(3).from(3).to(4).label("").color(Color.builder().color("black").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(4).from(1).to(5).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(5).from(5).to(6).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(6).from(6).to(13).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(7).from(4).to(7).label("TPA1").color(Color.builder().color("green").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(8).from(7).to(8).label("").color(Color.builder().color("green").build()).smooth(
+                        Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(9).from(7).to(9).label("").color(Color.builder().color("green").build()).smooth(
+                        Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(10).from(7).to(10).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(11).from(8).to(13).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(12).from(9).to(13).label("").color(Color.builder().color("green").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(13).from(10).to(13).label("").color(Color.builder().color("green").build()).smooth(
+                                                                Smooth.builder().enabled(true).type("curvedCW").roundness(-0.3).build()).build(),
+                GraphEdge.builder().id(14).from(13).to(11).label("HR Cnfrm MR Cnfrm").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(15).from(11).to(3).label("HR/MR Cnfrm Ack").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(17).from(12).to(2).label("").color(Color.builder().color("green").build()).build(),
+                GraphEdge.builder().id(18).from(11).to(1).label("HR Cnfrm MR Cnfrm").color(Color.builder().color("green").build()).build()
+        );
+
+    }
+@Data
+@Builder
+public class GraphEdge {
+    private Integer id;
+    private Integer from;
+    private Integer to;
+    private String label;
+    private Color color;
+    private Smooth smooth;
+
+}
+
+
+@Data
+@Builder
+public class Smooth {
+    private boolean enabled;
+    private String type;
+    private double roundness;
+}
+
+@Data
+@Builder
+public class Color {
+    private String color;
+    private String background;
+}
