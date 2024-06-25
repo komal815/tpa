@@ -283,3 +283,191 @@ public class Color {
     private String color;
     private String background;
 }
+
+
+
+ChatGPT
+
+public List<GraphNode> getAllNodes(){
+        return List.of(
+//                GraphNode.builder().id(1).label("Client").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+//                GraphNode.builder().id(2).label("H2H Online").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(3).label("H2H Online Released").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(4).label("Paysource").title("node 1 tooltip Text").color(Color.builder().background("#CF9FFF").build()).build(),
+//                GraphNode.builder().id(5).label("Standard TPA").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(6).label("Ack Delivery").title("node 1 tooltip Text").build(),
+//                GraphNode.builder().id(7).label("Ack Formatter").title("node 1 tooltip Text").build()
+                GraphNode.builder().id(1).label("Client 1").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+                GraphNode.builder().id(2).label("Client 2").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+                GraphNode.builder().id(3).label("Client 3").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).fixed(true).build(),
+                GraphNode.builder().id(4).label("Aggregator").title("node 1 tooltip Text").color(Color.builder().background("#cdffcd").build()).build(),
+                GraphNode.builder().id(5).label("H2H Online").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(6).label("AFS Released").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(7).label("DropBox TPA").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(8).label("Client 1").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(9).label("Client 2").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(10).label("Client 3").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(11).label("Ack Delivery").title("node 1 tooltip Text").build(),
+                GraphNode.builder().id(13).label("Paysource").title("node 1 tooltip Text").color(Color.builder().background("#CF9FFF").build()).build()
+        );
+    }
+
+
+@Data
+@Builder
+public class GraphNode {
+
+    private Integer id;
+    private String label;
+    private Boolean fixed;
+    private String title;
+    private Color color;
+}
+
+
+@Data
+@Builder
+public class Color {
+    private String color;
+    private String background;
+}
+ChatGPT
+This code defines a method getAllNodes that returns a list of GraphNode objects, each representing a node in a graph. The GraphNode and Color classes are built using the Lombok @Data and @Builder annotations to simplify the creation of immutable objects.
+
+getAllNodes Method
+The getAllNodes method constructs a list of GraphNode instances using the GraphNode.builder() pattern. Each GraphNode has an id, label, title, color (optional), and a fixed property (optional).
+
+Here’s a breakdown of the GraphNode instances created in this method:
+
+Node with ID 1, 2, 3: Represents a "Client" with a fixed position and specific background color #cdffcd.
+Node with ID 4: Represents an "Aggregator" with the same background color but not fixed.
+Node with ID 5: Represents "H2H Online."
+Node with ID 6: Represents "AFS Released."
+Node with ID 7: Represents "DropBox TPA."
+Node with IDs 8, 9, 10: Represent additional "Client" nodes.
+Node with ID 11: Represents "Ack Delivery."
+Node with ID 13: Represents "Paysource" with a background color #CF9FFF.
+GraphNode Class
+The GraphNode class defines the structure of a node:
+
+java
+Copy code
+@Data
+@Builder
+public class GraphNode {
+    private Integer id;
+    private String label;
+    private Boolean fixed;
+    private String title;
+    private Color color;
+}
+Color Class
+The Color class holds color-related information:
+
+java
+Copy code
+@Data
+@Builder
+public class Color {
+    private String color;
+    private String background;
+}
+Usage of Lombok Annotations
+@Data: Generates getters, setters, toString(), equals(), and hashCode() methods.
+@Builder: Implements the builder pattern to simplify object creation, allowing you to specify properties in a chainable manner.
+Summary
+The getAllNodes method creates a list of nodes with varying properties, suitable for visual graph representation. The GraphNode and Color classes, using Lombok, facilitate easy creation and manipulation of these objects. This method allows for flexibility in defining node properties such as color and fixed positioning within the graph.
+
+
+
+
+Write the junits for this class
+ChatGPT
+To write JUnit tests for the getAllNodes method and its associated classes (GraphNode and Color), you need to ensure that the method returns the correct nodes with the expected properties. Below are the JUnit 5 tests, including necessary setup and assertions.
+
+Dependencies
+Ensure you have the following dependencies in your pom.xml (for Maven) or build.gradle (for Gradle) to include JUnit 5 and Lombok.
+
+Maven (pom.xml):
+
+xml
+Copy code
+<dependencies>
+    <!-- JUnit 5 -->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>5.9.3</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>5.9.3</version>
+        <scope>test</scope>
+    </dependency>
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.26</version>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+Gradle (build.gradle):
+
+groovy
+Copy code
+dependencies {
+    // JUnit 5
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.26'
+    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+}
+Test Class
+Create a test class for your method in src/test/java:
+
+java
+Copy code
+import org.junit.jupiter.api.Test;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class GraphNodeTest {
+
+    @Test
+    public void testGetAllNodes() {
+        // Instantiate the class that contains the getAllNodes method
+        List<GraphNode> nodes = new YourClassName().getAllNodes();
+        
+        // Assert the size of the list
+        assertEquals(12, nodes.size(), "The size of the nodes list should be 12");
+
+        // Test specific nodes
+        GraphNode node1 = nodes.get(0);
+        assertEquals(1, node1.getId());
+        assertEquals("Client 1", node1.getLabel());
+        assertEquals("node 1 tooltip Text", node1.getTitle());
+        assertTrue(node1.getFixed());
+        assertNotNull(node1.getColor());
+        assertEquals("#cdffcd", node1.getColor().getBackground());
+
+        GraphNode node4 = nodes.get(3);
+        assertEquals(4, node4.getId());
+        assertEquals("Aggregator", node4.getLabel());
+        assertEquals("node 1 tooltip Text", node4.getTitle());
+        assertNull(node4.getFixed());
+        assertNotNull(node4.getColor());
+        assertEquals("#cdffcd", node4.getColor().getBackground());
+
+        GraphNode node13 = nodes.get(11);
+        assertEquals(13, node13.getId());
+        assertEquals("Paysource", node13.getLabel());
+        assertEquals("node 1 tooltip Text", node13.getTitle());
+        assertNull(node13.getFixed());
+        assertNotNull(node13.getColor());
+        assertEquals("#CF9FFF", node13.getColor().getBackground());
+    }
+}
