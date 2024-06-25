@@ -682,4 +682,12 @@ public class GraphEdgeTest {
         // Additional assertions for other edges can be added similarly
     }
 
-
+ @Override
+    public DirectedGraphModel getGraphForPartner(final String partnerId) {
+        DirectedGraphModel directedGraphModel= new DirectedGraphModel();
+        List<GraphNode> allNodes= getAllNodes();
+        List<GraphEdge> allEdges = getAllEdges();
+        directedGraphModel.setAllEdges(allEdges);
+        directedGraphModel.setAllNodes(allNodes);
+        return directedGraphModel;
+    }
