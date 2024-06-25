@@ -691,3 +691,23 @@ public class GraphEdgeTest {
         directedGraphModel.setAllNodes(allNodes);
         return directedGraphModel;
     }
+
+
+@Test
+    void testGetGraphForPartner() {
+        // Arrange
+        String partnerId = "partner1";
+        List<GraphNode> expectedNodes = Arrays.asList(new GraphNode("node1"), new GraphNode("node2"));
+        List<GraphEdge> expectedEdges = Arrays.asList(new GraphEdge("node1", "node2"));
+
+        when(graphService.getAllNodes()).thenReturn(expectedNodes);
+        when(graphService.getAllEdges()).thenReturn(expectedEdges);
+
+        // Act
+        DirectedGraphModel result = yourClassUnderTest.getGraphForPartner(partnerId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(expectedNodes, result.getAllNodes());
+        assertEquals(expectedEdges, result.getAllEdges());
+    }
