@@ -1,4 +1,32 @@
+GET http://localhost:8080/tpas?ptnrId=somePtnrId
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import java.util.List;
 
+@Repository
+public class H2hDBService {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public H2hDBService(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<ClientSetupNode> getTpasByPartnerId(String ptnrId) {
+        String query = "SELECT * FROM TPA_SUM t INNER JOIN PROFILE_SUM p ON t.prof_seq_id = p.prof_seq_id " +
+                       "WHERE p.ptnr_id = :ptnrId";
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("ptnrId", ptnrId);
+
+        return jdbcTemplate.query(query, params, this::mapRowToNode);
+    }
+
+    private ClientSetupNode mapRowToNode(ResultSet rs, int rowNum) throws SQLException {
+        // Your existing mapping code
+    }
+}
  public Map<String, ClientSetupNode>  loadTpasFromDB() {
         List<String> intervals = Arrays.asList("01-Jan-03","01-Jan-16","01-Jan-19","01-Jan-21","01-Jan-23","01-Jan-99");
         for(int i=0;i<intervals.size()-2;i++) {
