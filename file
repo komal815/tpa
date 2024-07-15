@@ -31,6 +31,56 @@
             { id: 5, label: 'Node 5' }
         ]);
 
+
+
+
+
+
+import React, { useState, useEffect, useRef } from 'react';
+import { DataSet, Network } from 'vis-network';
+
+const NetworkGraph = ({ nodesData, edgesData }) => {
+  const visJsRef = useRef(null);
+  const [network, setNetwork] = useState(null);
+  const [filteredNodes, setFilteredNodes] = useState(nodesData);
+
+  useEffect(() => {
+    if (visJsRef.current && filteredNodes) {
+      const data = {
+        nodes: new DataSet(filteredNodes),
+        edges: new DataSet(edgesData),
+      };
+      const options = {};
+      setNetwork(new Network(visJsRef.current, data, options));
+    }
+  }, [visJsRef, filteredNodes, edgesData]);
+
+  const filterNodes = (direction) => {
+    const filtered = nodesData.filter(node => {
+      if (direction === 'incoming') {
+        return edgesData.some(edge => edge.to === node.id);
+      } else if (direction === 'outgoing') {
+        return edgesData.some(edge => edge.from === node.id);
+      }
+      return true;
+    });
+    setFilteredNodes(filtered);
+  };
+
+  return (
+    <div>
+      <select onChange={(e) => filterNodes(e.target.value)}>
+        <option value="incoming">Incoming</option>
+        <option value="outgoing">Outgoing</option>
+      </select>
+      <div ref={visJsRef} style={{ height: '500px' }} />
+    </div>
+  );
+};
+
+export default NetworkGraph;
+
+
         // Create an array with edges
         var edges = new vis.DataSet([
             { from: 1, to: 2 },
