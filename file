@@ -1,1 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vis.js Network Example</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <style type="text/css">
+        #mynetwork {
+            width: 800px;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <select id="directionFilter">
+            <option value="all">All</option>
+            <option value="incoming">Incoming</option>
+            <option value="outgoing">Outgoing</option>
+        </select>
+    </div>
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+        // Create an array with nodes
+        var nodes = new vis.DataSet([
+            { id: 1, label: 'Node 1' },
+            { id: 2, label: 'Node 2' },
+            { id: 3, label: 'Node 3' },
+            { id: 4, label: 'Node 4' },
+            { id: 5, label: 'Node 5' }
+        ]);
+
+        // Create an array with edges
+        var edges = new vis.DataSet([
+            { from: 1, to: 2 },
+            { from: 1, to: 3 },
+            { from: 2, to: 4 },
+            { from: 2, to: 5 },
+            { from: 3, to: 5 }
+        ]);
+
+        // Create a network
+        var container = document.getElementById('mynetwork');
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+        var options = {};
+        var network = new vis.Network(container, data, options);
+
+        // Add event listener to the drop-down
+        document.getElementById('directionFilter').addEventListener('change', function() {
+            var selectedValue = this.value;
+            filterNodes(selectedValue);
+        });
+
+        function filterNodes(direction) {
+            var filteredNodes = new vis.DataSet(nodes.get());
+
+            if (direction === 'incoming') {
+                // Get nodes with incoming edges
+                var incomingNodes = new Set(edges.get().map(edge => edge.to));
+                filteredNodes = new vis.DataSet(nodes.get().filter(node => incomingNodes.has(node.id)));
+            } else if (direction === 'outgoing') {
+                // Get nodes with outgoing edges
+                var outgoingNodes = new Set(edges.get().map(edge => edge.from));
+                filteredNodes = new vis.DataSet(nodes.get().filter(node => outgoingNodes.has(node.id)));
+            }
+
+            // Update the network with the filtered nodes
+            network.setData({
+                nodes: filteredNodes,
+                edges: edges
+            });
+        }
+    </script>
+</body>
+</html>
 
