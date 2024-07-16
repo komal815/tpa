@@ -162,3 +162,89 @@ export default NetworkGraph;
 //        nodes.get(0).setFixed(true);
         return nodes;
     }
+
+
+
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+public class GraphNodeServiceTest {
+
+    @Mock
+    private ColorPalette colorPalette; // Mock the ColorPalette class
+
+    @InjectMocks
+    private GraphNodeService graphNodeService; // The class containing getAllNodes method
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        when(colorPalette.get(0)).thenReturn("#FFFFFF"); // Assuming the color palette returns white as the first color
+    }
+
+    @Test
+    public void testGetAllNodes() {
+        List<ClientSetupNode> clientSetupNodeList = new ArrayList<>();
+        ClientSetupNode node1 = mock(ClientSetupNode.class);
+        when(node1.getTpaSeqId()).thenReturn("node1");
+        when(node1.getDirection()).thenReturn("direction1");
+        when(node1.isAFSReleasedTpa()).thenReturn(true);
+        when(node1.isPaysourceSenderTPA()).thenReturn(false);
+
+        ClientSetupNode node2 = mock(ClientSetupNode.class);
+        when(node2.getTpaSeqId()).thenReturn("node2");
+        when(node2.getDirection()).thenReturn("direction2");
+        when(node2.isAFSReleasedTpa()).thenReturn(false);
+        when(node2.isPaysourceSenderTPA()).thenReturn(true);
+
+        clientSetupNodeList.add(node1);
+        clientSetupNodeList.add(node2);
+
+        List<GraphNode> result = graphNodeService.getAllNodes(clientSetupNodeList);
+
+        assertEquals(4, result.size()); // 2 original nodes + 2 conditional nodes
+
+        // Check first AFS node
+        GraphNode afsNode = result.get(0);
+        assertEquals("1", afsNode.getId());
+        assertEquals("AFS", afsNode.getLabel());
+        assertEquals("AFS_Released_TPA", afsNode.getTitle());
+        assertEquals("AFS_Released_TPA", afsNode.getContent());
+        assertEquals("#CF9FFF", afsNode.getColor().getBackground());
+
+        // Check first Paysource node
+        GraphNode paysourceNode = result.get(1);
+        assertEquals("2", paysourceNode.getId());
+        assertEquals("Paysource", paysourceNode.getLabel());
+        assertEquals("Paysource", paysourceNode.getTitle());
+        assertEquals("Paysource", paysourceNode.getContent());
+        assertEquals("blue", paysourceNode.getColor().getBackground());
+
+        // Check original nodes
+        GraphNode graphNode1 = result.get(2);
+        assertEquals("node1", graphNode1.getId());
+        assertEquals("node1", graphNode1.getLabel());
+        assertEquals("direction1", graphNode1.getTitle());
+        assertEquals(node1.toString(), graphNode1.getContent());
+        assertEquals("#FFFFFF", graphNode1.getColor().getBackground());
+
+        GraphNode graphNode2 = result.get(3);
+        assertEquals("node2", graphNode2.getId());
+        assertEquals("node2", graphNode2.getLabel());
+        assertEquals("direction2", graphNode2.getTitle());
+        assertEquals(node2.toString(), graphNode2.getContent());
+        assertEquals("#FFFFFF", graphNode2.getColor().getBackground());
+    }
+}
+
