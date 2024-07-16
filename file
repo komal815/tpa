@@ -128,3 +128,37 @@ export default NetworkGraph;
 </body>
 </html>
 
+
+ public List<GraphNode> getAllNodes(final List<ClientSetupNode> clientSetupNodeList){
+        final List<GraphNode> nodes= new ArrayList<>();
+        final boolean[] conditionMetForAfs = { false };
+        final boolean[] conditionMetForPaysource = { false };
+
+        clientSetupNodeList.forEach(e ->{
+            final String id = e.getTpaSeqId();
+            final String label = e.getTpaSeqId();
+            final String title = e.getDirection();
+            String color = colorPalette.get(0);
+            final String content = e.toString();
+            if(!conditionMetForAfs[0]) {
+                if (e.isAFSReleasedTpa() == true) {
+                    nodes.add(GraphNode.builder().id("1").label("AFS").title("AFS_Released_TPA").content("AFS_Released_TPA")
+                            .color(Color.builder().background("#CF9FFF").build()).x(-300).y(10).shape("ellipse").font(
+                                    Font.builder().size(40).build()).build());
+                    conditionMetForAfs[0] = true;
+                }
+            } else if (!conditionMetForPaysource[0]) {
+                if (e.isPaysourceSenderTPA()==true) {
+                    nodes.add(GraphNode.builder().id("2").label("Paysource").title("Paysource").content("Paysource").color(
+                            Color.builder().background("blue").build()).x(-300).y(10).shape("ellipse").font(
+                            Font.builder().size(40).build()).build());
+                    conditionMetForPaysource[0]=true;
+                }
+            }
+            nodes.add(GraphNode.builder().id(id).label(label).title(title).content(content).color(
+                    Color.builder().background(color).build()).build());
+
+        });
+//        nodes.get(0).setFixed(true);
+        return nodes;
+    }
