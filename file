@@ -368,3 +368,91 @@ public class GraphNodeServiceTest {
     }
 }
 
+
+
+
+
+
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class YourClassNameTest {
+
+    private YourClassName yourClassInstance;
+    private List<ClientSetupNode> clientSetupNodeList;
+
+    @BeforeEach
+    public void setUp() {
+        yourClassInstance = new YourClassName();
+
+        clientSetupNodeList = new ArrayList<>();
+
+        // Sample data setup
+        ClientSetupNode node1 = ClientSetupNode.builder()
+                .tpaSeqId("1")
+                .direction("Incoming")
+                .isAFSReleasedTpa(true)
+                .build();
+
+        ClientSetupNode node2 = ClientSetupNode.builder()
+                .tpaSeqId("2")
+                .direction("Outgoing")
+                .isPaysourceSenderTPA(true)
+                .build();
+
+        ClientSetupNode node3 = ClientSetupNode.builder()
+                .tpaSeqId("3")
+                .direction("Incoming")
+                .build();
+
+        clientSetupNodeList.add(node1);
+        clientSetupNodeList.add(node2);
+        clientSetupNodeList.add(node3);
+    }
+
+    @Test
+    public void testGetAllNodes() {
+        List<GraphNode> result = yourClassInstance.getAllNodes(clientSetupNodeList);
+
+        assertNotNull(result);
+        assertEquals(5, result.size());
+
+        // Validate the AFS node
+        GraphNode afsNode = result.get(0);
+        assertEquals("1", afsNode.getId());
+        assertEquals("AFS", afsNode.getLabel());
+        assertEquals("AFS_Released_TPA", afsNode.getTitle());
+        assertEquals("AFS_Released_TPA", afsNode.getContent());
+        assertEquals("#CF9FFF", afsNode.getColor().getBackground());
+        assertEquals("ellipse", afsNode.getShape());
+
+        // Validate the Paysource node
+        GraphNode paysourceNode = result.get(1);
+        assertEquals("2", paysourceNode.getId());
+        assertEquals("Paysource", paysourceNode.getLabel());
+        assertEquals("Paysource", paysourceNode.getTitle());
+        assertEquals("Paysource", paysourceNode.getContent());
+        assertEquals("blue", paysourceNode.getColor().getBackground());
+        assertEquals("ellipse", paysourceNode.getShape());
+
+        // Validate the other nodes
+        GraphNode node1 = result.get(2);
+        assertEquals("1", node1.getId());
+        assertEquals("1", node1.getLabel());
+
+        GraphNode node2 = result.get(3);
+        assertEquals("2", node2.getId());
+        assertEquals("2", node2.getLabel());
+
+        GraphNode node3 = result.get(4);
+        assertEquals("3", node3.getId());
+        assertEquals("3", node3.getLabel());
+    }
+}
+
