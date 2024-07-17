@@ -163,7 +163,127 @@ export default NetworkGraph;
         return nodes;
     }
 
+@Data
+@Builder
+public class GraphNode {
 
+    private String id;
+    private String label;
+    private Boolean fixed;
+    private String title;
+    private Color color;
+    private String content;
+    private Integer x;
+    private Integer y;
+    private String shape;
+    private Font font;
+
+}
+
+@Builder
+@Data
+@Slf4j
+public class ClientSetupNode {               // ClientSetupNode   // Type. H2H TPA, MFTS Route AFS seutp, PaysourceSetup, Camps setup
+
+    public enum ClientSetupType {
+        H2H_TPA,
+        H2H_SYS_TPA,
+        H2H_RCVR_TPA,
+        MFT_ROUTE,
+        AFS_SETUP,
+        NDM_STEP,
+        CCAP_SETUP,
+        WPI_SETUP
+    }
+
+
+    public enum H2H_TPA_TYPE {
+        DEFAULT,
+        TRANSL_ENG_H2H,
+        TRANSL_ENG_CUSTOM,
+        DEST_APP_NM_P2P_LOB,
+        DEST_APP_NM_P2P_PARTNER,
+        DEST_APP_NM_NDM,
+        DEST_APP_NM_PARTNER,
+        DEST_APP_NM_TPA_CHAIN,
+        DEST_APP_NM_TPA_FileHub,
+        DEST_APP_NM_TPA_OBFileHub,
+
+    }
+
+    ClientSetupType nodeType;
+    H2H_TPA_TYPE h2hTPAType;
+
+    String nextTpaKey;
+    ClientSetupNode nextNode;
+    ClientSetupType nextNodeType;
+
+    List<ClientSetupNode> parentNodes;
+
+    String partner;
+    String tpaSeqId;
+
+    //H2H Specific fields.
+    String data_type_cd;
+    String data_format_cd;
+    String tpaKeyWithDir;
+    String direction;
+    String dest_app_nm;
+
+    String rcvr_id;
+    String rcvr_tpa_id;
+
+    boolean isAFSReleasedTpa;
+    boolean isPaysourceSenderTPA;
+    String trcking_Id;
+    String mappedCCAPID;
+
+    String IN_NDM_SCRIPT_TX;
+    String OUT_NDM_SCRIPT_TX;
+    String IN_MF_DEST_RUN_TSK_SOPT_TX;
+    String OUT_MF_DEST_RUN_TSK_SOPT_TX;
+
+    LocalDateTime latestActivityTime;
+
+    Map<Integer,String> xlsRowData;
+
+    String translationEngine;
+    String src_data_fmt;
+    String trgt_data_fmt;
+
+
+    public boolean isAFSReleasedInFamily() {
+        if (isAFSReleasedTpa) {
+            return true;
+        } else if(nextNode != null) {
+            boolean result = false;
+            result |= nextNode.isAFSReleasedInFamily();
+            return result;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean isIncoming() {
+        return StringUtils.equalsIgnoreCase(this.direction,"Incoming");
+    }
+
+    public boolean hasTranslationEnginePriority() {
+        return StringUtils.equalsIgnoreCase(this.translationEngine,"H2H")
+                || StringUtils.equalsIgnoreCase(this.translationEngine,"Custom");
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tpaKeyWithDir);
+    }
+
+    public String toString() {
+        return "ClientSetUpFlowInfo{" + "tpaSeqId='" + tpaSeqId + '\'' + ", tpaKeyWithDir=" + tpaKeyWithDir + ", direction='" + direction + '\'' + '}';
+    }
+}
+
+    final List<String> colorPalette = List.of("#50C878", "#D30F23","#EAEA71","#F68066");
 
 
 import static org.junit.jupiter.api.Assertions.*;
