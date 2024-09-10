@@ -570,3 +570,122 @@ public class YourClassNameTest {
     }
 }
 
+
+package com.jpmc.opstool.mft.telnet;
+
+import org.apache.commons.net.telnet.TelnetClient;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class TelnetServiceTest {
+
+    @InjectMocks
+    private TelnetService telnetService;
+
+    @Mock
+    private TelnetClient telnetClient;
+
+    @Mock
+    private BufferedReader inputReader;
+
+    @Mock
+    private PrintWriter outputWriter;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        telnetService.setTelnetClient(telnetClient);
+        telnetService.setInputReader(inputReader);
+        telnetService.setOutputWriter(outputWriter);
+        // Set the command timeout value (e.g., 5000 ms)
+        ReflectionTestUtils.setField(telnetService, "telnetCmdTimeout", 5000L);
+    }
+
+    @Test
+    void testConnectSuccess() throws Exception {
+        String server = "localhost";
+        int port = 23;
+
+        telnetService.connect(server, port);
+
+        verify(telnetClient, times(1)).connect(server, port);
+        verify(inputReader, never()).readLine(); // No reading is expected at this point
+        assertTrue(telnetClient.isConnected());
+    }
+
+    @Test
+    void testConnectFailure() throws Exception {
+        String server = "localhost";
+        int port = 23;
+
+        doThrow(new RuntimeException("Connection failed")).when(telnetClient).connect(server, port);
+
+        Exception exception = assertThrows(Exception.class, () -> {
+            telnetService.connect(server, port);
+        });
+
+        assertEquals("Connection failed", exception.getMessage());
+        verify(telnetClient, times(1)).connect(server, port);
+    }
+
+    @Test
+    void testDisconnectSuccess() throws Exception {
+        when(telnetClient.isConnected()).thenReturn(true);
+
+        telnetService.disconnect();
+
+        verify(telnetClient, times(1)).disconnect();
+    }
+
+    @Test
+    void testDisconnectWhenNotConnected() throws Exception {
+        when(telnetClient.isConnected()).thenReturn(false);
+
+        telnetService.disconnect();
+
+        verify(telnetClient, never()).disconnect(); // No disconnection if not connected
+    }
+
+    @Test
+    void testSendCommandWithResponse() throws Exception {
+        String command = "ls";
+        when(inputReader.ready()).thenReturn(true);
+        when(inputReader.readLine()).thenReturn("file1.txt", "file2.txt", "$");
+
+        String response = telnetService.sendCommand(command);
+
+        verify(outputWriter, times(1)).println(command);
+        assertTrue(response.contains("file1.txt"));
+        assertTrue(response.contains("file2.txt"));
+    }
+
+    @Test
+    void testSendCommandNoResponse() throws Exception {
+        String command = "ls";
+        when(inputReader.ready()).thenReturn(false);  // Simulating no response
+
+        String response = telnetService.sendCommand(command);
+
+        verify(outputWriter, times(1)).println(command);
+        assertEquals("I AM NOT ABLE TO READ THE RESPONSE", response);
+    }
+
+    @Test
+    void testLogin() throws InterruptedException {
+        telnetService.login();
+
+        verify(outputWriter, times(1)).println("username");
+        verify(outputWriter, times(1)).println("password");
+    }
+}
+
