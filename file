@@ -1,3 +1,117 @@
+package com.jpmc.opstool.mft.telnet;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.net.telnet.TelnetClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+
+@Service
+@Slf4j
+public class TelnetService {
+    @Getter
+    @Setter
+    private TelnetClient telnetClient;
+    @Getter
+    @Setter
+    BufferedReader inputReader;
+    @Getter
+    @Setter
+    PrintWriter outputWriter;
+
+    @Value("${telnet.cmd-timeout}")
+    private Long telnetCmdTimeout;
+
+    public TelnetService() {
+        telnetClient = new TelnetClient();
+    }
+
+    public void connect(final String server, final int port) throws Exception {
+        log.info("Connecting to server ...");
+        try {
+            telnetClient.connect(server, port);
+            //        inputStream = telnetClient.getInputStream();
+            inputReader = new BufferedReader(new InputStreamReader(telnetClient.getInputStream()));
+            outputWriter = new PrintWriter(telnetClient.getOutputStream(), true);
+            log.info("Connected to server ...");
+        } catch (Exception e) {
+            log.error("Failed to connect to server: {}", e.getMessage());
+        }
+    }
+
+    public void disconnect() throws Exception {
+        if(telnetClient.isConnected()) {
+            telnetClient.disconnect();
+            log.info("Disconnected from server");
+        }
+    }
+
+    public String sendCommand(final String command) {
+        log.info("Sending telnet command: {}", command);
+        outputWriter.println(command);
+        outputWriter.flush();
+        StringBuilder response = new StringBuilder();
+        String line;
+        var emptyLinesCount = 0;
+        long startTime = System.currentTimeMillis();
+        try {
+            log.info("Reading response ...");
+            while ((System.currentTimeMillis() - startTime) < telnetCmdTimeout) {
+                if(inputReader.ready()) {
+                    line = inputReader.readLine();
+                    log.info("input reader is ready!");
+                    if(line != null) {
+                        log.info("Received line: {}", line);
+                        response.append(line).append("\n");
+                        if (line.endsWith("$") || line.endsWith("#") || line.endsWith(">")) {
+                            break;
+                        }
+
+                        if (line.trim().isEmpty()) {
+                            emptyLinesCount++;
+                            if (emptyLinesCount > 200) {
+                                break;
+                            }
+                        } else {
+                            emptyLinesCount = 0;
+                        }
+                    }
+                } else {
+                    log.info("Sleeping....waiting for input reader to be ready");
+                    Thread.sleep(100);
+                }
+
+                if(response.isEmpty()) {
+                    log.error("No response from the server");
+                }
+            }
+
+            log.info("Command response: {}", response);
+            return response.toString();
+        } catch (Exception e) {
+            log.error("Failed to read from server: {}", e.getMessage());
+            return "I AM NOT ABLE TO READ THE RESPONSE";
+        }
+    }
+
+    public void login() throws InterruptedException {
+        log.info("Logging you in ...");
+        sendCommand("username");
+        Thread.sleep(1000);
+        sendCommand("password");
+        Thread.sleep(1000);
+        log.info("Login successful");
+    }
+}
+
+
+
+
 <!DOCTYPE html>
 <html>
 <head>
