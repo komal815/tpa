@@ -332,3 +332,131 @@ public class SCIController {
     }
 
 }
+
+
+
+
+import com.jpmorganchase.cib.h2h.opstool.sci.service.SCIService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+
+import java.io.IOException;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class SCIControllerTest {
+
+    @Mock
+    private SCIService sciService;
+
+    @InjectMocks
+    private SCIController sciController;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void downloadReport_success() throws IOException {
+        // Arrange
+        MockMultipartFile file1 = new MockMultipartFile("file1", "original.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+        MockMultipartFile file2 = new MockMultipartFile("file2", "h2hData.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+
+        // Act
+        ResponseEntity<String> response = sciController.downloadReport(file1, file2);
+
+        // Assert
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("files uploaded successfully", response.getBody());
+        verify(sciService, times(1)).extractUniqueIdToXmitIdDetails(any());
+        verify(sciService, times(1)).readExcelForH2hData(any());
+    }
+
+    @Test
+    void downloadReport_fileIsEmpty() throws IOException {
+        // Arrange
+        MockMultipartFile emptyFile = new MockMultipartFile("file", "", "application/vnd.ms-excel", new byte[0]);
+
+        // Act
+        ResponseEntity<String> response = sciController.downloadReport(emptyFile, emptyFile);
+
+        // Assert
+        assertEquals(400, response.getStatusCodeValue());
+        assertEquals("file is Empty", response.getBody());
+        verify(sciService, never()).extractUniqueIdToXmitIdDetails(any());
+    }
+
+    @Test
+    void runLLExtraction_success() throws IOException {
+        // Arrange
+        MockMultipartFile file1 = new MockMultipartFile("file1", "original.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+        MockMultipartFile file2 = new MockMultipartFile("file2", "h2hData.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+
+        // Act
+        ResponseEntity<InputStreamResource> response = sciController.downloadFile(file1, file2);
+
+        // Assert
+        assertNotNull(response);
+        verify(sciService, times(1)).extractUniqueIdToXmitIdDetails(any());
+        verify(sciService, times(1)).readExcelForH2hData(any());
+    }
+
+    @Test
+    void downloadFilesToNAS_success() throws IOException {
+        // Arrange
+        MockMultipartFile file1 = new MockMultipartFile("file1", "original.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+        MockMultipartFile file2 = new MockMultipartFile("file2", "h2hData.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+        String cloudCertId = "certId123";
+
+        // Act
+        ResponseEntity<InputStreamResource> response = sciController.downloadFilesToNAS(file1, file2, cloudCertId);
+
+        // Assert
+        assertNotNull(response);
+        verify(sciService, times(1)).extractUniqueIdToXmitIdDetails(any());
+        verify(sciService, times(1)).readExcelForH2hData(any());
+    }
+
+    @Test
+    void checkStatus_success() {
+        // Act
+        ResponseEntity<String> response = sciController.checkStatus();
+
+        // Assert
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("OK", response.getBody());
+    }
+
+    @Test
+    void uploadExcel_success() throws IOException {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "application/vnd.ms-excel", "file-content".getBytes());
+
+        // Act
+        ResponseEntity<List<List<String>>> response = sciController.uploadExcel(file);
+
+        // Assert
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+    }
+
+    @Test
+    void extractData_success() {
+        // Arrange
+        SCIModel model = SCIModel.builder().e2eId("S90290000969424").xmitId("100001019885188").build();
+        when(sciService.processExtraction()).thenReturn(Map.of("key", new SCIResponse()));
+
+        // Act
+        SCIResponse response = sciController.extractData(model);
+
+        // Ass
+
