@@ -1,691 +1,334 @@
-package com.jpmc.opstool.mft.telnet;
+package com.jpmorganchase.cib.h2h.opstool.sci;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.google.gson.Gson;
+import com.jpmorganchase.cib.h2h.opstool.sci.cache.SCICache;
+import com.jpmorganchase.cib.h2h.opstool.sci.model.SCIModel;
+import com.jpmorganchase.cib.h2h.opstool.sci.model.SCIResponse;
+import com.jpmorganchase.cib.h2h.opstool.sci.service.SCIService;
+import com.opencsv.CSVWriter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.net.telnet.TelnetClient;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-@Service
+import static com.jpmorganchase.cib.h2h.opstool.sci.cache.SCICache.*;
+
+@RestController
 @Slf4j
-public class TelnetService {
-    @Getter
-    @Setter
-    private TelnetClient telnetClient;
-    @Getter
-    @Setter
-    BufferedReader inputReader;
-    @Getter
-    @Setter
-    PrintWriter outputWriter;
+@RequestMapping("/api/excel")
+public class SCIController {
 
-    @Value("${telnet.cmd-timeout}")
-    private Long telnetCmdTimeout;
+    @Autowired
+    private SCIService sciService;
 
-    public TelnetService() {
-        telnetClient = new TelnetClient();
-    }
-
-    public void connect(final String server, final int port) throws Exception {
-        log.info("Connecting to server ...");
-        try {
-            telnetClient.connect(server, port);
-            //        inputStream = telnetClient.getInputStream();
-            inputReader = new BufferedReader(new InputStreamReader(telnetClient.getInputStream()));
-            outputWriter = new PrintWriter(telnetClient.getOutputStream(), true);
-            log.info("Connected to server ...");
-        } catch (Exception e) {
-            log.error("Failed to connect to server: {}", e.getMessage());
+    @PostMapping("/downloadReport")
+    public ResponseEntity<String> downloadReport(@RequestParam("file1")MultipartFile originalFile, @RequestParam("file2")MultipartFile h2hDataFile) throws
+            IOException{
+        if(originalFile.isEmpty() || h2hDataFile.isEmpty()){
+            return ResponseEntity.badRequest().body("file is Empty");
         }
-    }
-
-    public void disconnect() throws Exception {
-        if(telnetClient.isConnected()) {
-            telnetClient.disconnect();
-            log.info("Disconnected from server");
-        }
-    }
-
-    public String sendCommand(final String command) {
-        log.info("Sending telnet command: {}", command);
-        outputWriter.println(command);
-        outputWriter.flush();
-        StringBuilder response = new StringBuilder();
-        String line;
-        var emptyLinesCount = 0;
         long startTime = System.currentTimeMillis();
-        try {
-            log.info("Reading response ...");
-            while ((System.currentTimeMillis() - startTime) < telnetCmdTimeout) {
-                if(inputReader.ready()) {
-                    line = inputReader.readLine();
-                    log.info("input reader is ready!");
-                    if(line != null) {
-                        log.info("Received line: {}", line);
-                        response.append(line).append("\n");
-                        if (line.endsWith("$") || line.endsWith("#") || line.endsWith(">")) {
-                            break;
-                        }
+        log.info(" starting file dowload Report  with start time {}", startTime);
+        SCICache.cleanCache();
+        sciService.extractUniqueIdToXmitIdDetails(originalFile.getInputStream());
+        sciService.readExcelForH2hData(h2hDataFile.getInputStream());
+        sciService.createUniqueKeyToSCIModelMap();
+        log.info(" size of unique key to SCI Model Map{}", uniqueKeyToSCIModelMap.size());
+        sciService.updateSciModelwithCCNAndE2eId();
+        sciService.updateFilePathName();
+        sciService.processExtraction();
 
-                        if (line.trim().isEmpty()) {
-                            emptyLinesCount++;
-                            if (emptyLinesCount > 200) {
-                                break;
-                            }
-                        } else {
-                            emptyLinesCount = 0;
-                        }
+        writeWithOpenCSV(uniqueIdToExtractedResponseMap);
+
+        long endTime = System.currentTimeMillis();
+        log.info(" Ending file dowload process for 1st batch  with end time {}", endTime);
+        log.info(" Total time taken in sec {}", (endTime-startTime)/1000);
+        return ResponseEntity.ok("files uploaded successfully");
+    }
+
+
+    @PostMapping("/runLLExtraction")
+    public ResponseEntity<InputStreamResource> downloadFile(@RequestParam("file1")MultipartFile originalFile, @RequestParam("file2")MultipartFile h2hDataFile) throws
+            IOException{
+        if(originalFile.isEmpty() || h2hDataFile.isEmpty()){
+            return ResponseEntity.badRequest().
+                    body(new InputStreamResource(new FileInputStream("File is Empty")));
+        }
+        long startTime = System.currentTimeMillis();
+        log.info(" starting file downloadFile  with start time {}", startTime);
+        SCICache.cleanCache();
+        sciService.extractUniqueIdToXmitIdDetails(originalFile.getInputStream());
+        sciService.readExcelForH2hData(h2hDataFile.getInputStream());
+        sciService.createUniqueKeyToSCIModelMap();
+        log.info(" size of unique key to SCI Model Map{}", uniqueKeyToSCIModelMap.size());
+        sciService.updateSciModelwithCCNAndE2eId();
+        sciService.updateFilePathName();
+        sciService.processExtraction();
+
+
+        long endTime = System.currentTimeMillis();
+        log.info(" Ending file dowload process for 1st batch  with end time {}", endTime);
+        log.info(" Total time taken in sec {}", (endTime-startTime)/1000);
+        return getFile(uniqueIdToExtractedResponseMap);
+
+    }
+
+    @PostMapping("/downloadFilesToNAS")
+    public ResponseEntity<InputStreamResource> downloadFilesToNAS(@RequestParam("file1")MultipartFile originalFile, @RequestParam("file2")MultipartFile h2hDataFile ,@RequestParam("cloudCertId")String cloudCertId) throws
+            IOException{
+        if(originalFile.isEmpty() || h2hDataFile.isEmpty()){
+            return ResponseEntity.badRequest().
+                    body(new InputStreamResource(new FileInputStream("File is Empty")));
+        }
+        long startTime = System.currentTimeMillis();
+        log.info(" starting file dowload process for 1st batch  with start time {}", startTime);
+        SCICache.cleanCache();
+        sciService.extractUniqueIdToXmitIdDetails(originalFile.getInputStream());
+        sciService.readExcelForH2hData(h2hDataFile.getInputStream());
+        sciService.createUniqueKeyToSCIModelMap();
+        sciService.updateSciModelwithCCNAndE2eId();
+        sciService.processDownloadForAll(cloudCertId);
+
+//        writeDownloadCSV(xmitIdDownloadStatusMap);
+
+
+        long endTime = System.currentTimeMillis();
+        log.info(" Ending file dowload process for 1st batch  with end time {}", endTime);
+        log.info(" Total time taken in sec {}", (endTime-startTime)/1000);
+        return getResponseAsFile(xmitIdDownloadStatusMap);
+    }
+
+    private void writeDownloadCSV(final Map<String, SCIModel> xmitIdDownloadStatusMap) throws IOException {
+        if(!xmitIdDownloadStatusMap.isEmpty()){
+            String fileName = "SCIFileDownLoadResponse_"+Math.random()+".csv";
+            try(Writer writer = new OutputStreamWriter(new FileOutputStream(fileName), StandardCharsets.UTF_8);
+                    CSVWriter csvWriter = new CSVWriter(writer)) {
+
+                Class<?> clazz = SCIModel.class;
+
+                Field[] fields = clazz.getDeclaredFields();
+                String[] headers = new String[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    headers[i] = fields[i].getName();
+                }
+                csvWriter.writeNext(headers);
+
+                for (final Map.Entry<String, SCIModel> entry : xmitIdDownloadStatusMap.entrySet()) {
+                    //
+                    csvWriter.writeNext(entry.getValue().toArray());
+
+                }
+            }
+            log.info(" download files report successfully written with name {}",fileName);
+        }
+    }
+
+
+
+    private ResponseEntity<InputStreamResource> getResponseAsFile(final Map<String, SCIModel> xmitIdDownloadStatusMap) throws IOException {
+        if(!xmitIdDownloadStatusMap.isEmpty()){
+            String fileName = "SCIFileDownLoadResponse_"+Math.random()+".csv";
+            try(Writer writer = new OutputStreamWriter(new FileOutputStream(fileName), StandardCharsets.UTF_8);
+                    CSVWriter csvWriter = new CSVWriter(writer)) {
+
+                Class<?> clazz = SCIModel.class;
+
+                Field[] fields = clazz.getDeclaredFields();
+                String[] headers = new String[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    headers[i] = fields[i].getName();
+                }
+                csvWriter.writeNext(headers);
+
+                for (final Map.Entry<String, SCIModel> entry : xmitIdDownloadStatusMap.entrySet()) {
+                    //
+                    csvWriter.writeNext(entry.getValue().toArray());
+
+                }
+            }
+
+            log.info(" download files report successfully written with name {}",fileName);
+            File file = new File(fileName);
+
+            FileInputStream inputStream = new FileInputStream(file);
+            InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+            HttpHeaders headers  = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION,"attachment : filename="+file.getName());
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentLength(file.length())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(inputStreamResource);
+        }
+        return null;
+    }
+
+
+    private void writeCSV(final Map<String, SCIResponse> xmitIdDownloadStatusMap) throws IOException {
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter("extract1.csv"))){
+
+            Class<?> clazz  = SCIResponse.class;
+            Field[] fields = clazz.getDeclaredFields();
+            for(int i = 0;i< fields.length;i++){
+                writer.write(fields[i].getName());
+                if(i<fields.length-1){
+                    writer.write(",");
+                }
+            }
+            writer.newLine();
+            for(final Map.Entry<String, SCIResponse> entry : xmitIdDownloadStatusMap.entrySet()){
+                //
+                for(int i =0;i< fields.length;i++){
+                    fields[i].setAccessible(true);
+                    writer.write(String.valueOf(fields[i].get(entry.getValue())));
+                    if(i<fields.length-1){
+                        writer.write(",");
                     }
-                } else {
-                    log.info("Sleeping....waiting for input reader to be ready");
-                    Thread.sleep(100);
                 }
+                writer.newLine();
+            }
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private ResponseEntity<InputStreamResource> getFile(final Map<String, SCIResponse> xmitIdDownloadStatusMap) throws IOException {
+        String fileName = "SCIFileDownLoadResponse_"+Math.random()+".csv";
 
-                if(response.isEmpty()) {
-                    log.error("No response from the server");
+        try(Writer writer = new OutputStreamWriter(new FileOutputStream(fileName), StandardCharsets.UTF_8);
+                CSVWriter csvWriter = new CSVWriter(writer)){
+
+            Class<?> clazz  = SCIResponse.class;
+
+            Field[] fields = clazz.getDeclaredFields();
+            String [] headers = new String[fields.length];
+            for (int i = 0; i< fields.length;i++){
+                headers[i] = fields[i].getName();
+            }
+            csvWriter.writeNext(headers);
+
+            for(final Map.Entry<String, SCIResponse> entry : xmitIdDownloadStatusMap.entrySet()){
+                //
+                csvWriter.writeNext(entry.getValue().toArray());
+            }
+        }
+
+        File file = new File(fileName);
+
+        FileInputStream inputStream = new FileInputStream(file);
+        InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+        HttpHeaders headers  = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION,"attachment : filename="+file.getName());
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(file.length())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(inputStreamResource);
+    }
+    private void writeWithOpenCSV(final Map<String, SCIResponse> xmitIdDownloadStatusMap) throws IOException {
+        try(Writer writer = new OutputStreamWriter(new FileOutputStream("SCIResponse_"+Math.random()+".csv"), StandardCharsets.UTF_8);
+                CSVWriter csvWriter = new CSVWriter(writer)){
+
+            Class<?> clazz  = SCIResponse.class;
+
+            Field[] fields = clazz.getDeclaredFields();
+            String [] headers = new String[fields.length];
+            for (int i = 0; i< fields.length;i++){
+                headers[i] = fields[i].getName();
+            }
+            csvWriter.writeNext(headers);
+
+            for(final Map.Entry<String, SCIResponse> entry : xmitIdDownloadStatusMap.entrySet()){
+                //
+                csvWriter.writeNext(entry.getValue().toArray());
+
+            }
+        }
+    }
+
+    @PostMapping("/uploadExcel")
+    public ResponseEntity<List<List<String>>> uploadExcel(@RequestParam("file")MultipartFile file ) throws
+            IOException{
+        List<List<String>> excelData = new ArrayList<>();
+        if(file.isEmpty()){
+            return ResponseEntity.badRequest().body(null);
+        }
+        try(Workbook workbook = new XSSFWorkbook(file.getInputStream())){
+            Sheet sheet = workbook.getSheetAt(0);
+            for(Row row: sheet){
+                List<String> rowData = new ArrayList<>();
+                for(Cell cell:row){
+                    switch(cell.getCellType()){
+                        case STRING :
+                            rowData.add(cell.getStringCellValue());
+                            break;
+                        case NUMERIC:
+                            rowData.add(String.valueOf(cell.getNumericCellValue()));
+                            break;
+                        case BOOLEAN:
+                            rowData.add(String.valueOf(cell.getBooleanCellValue()));
+                            break;
+                        default:
+                            rowData.add(" ");
+                    }
                 }
+                excelData.add(rowData);
             }
 
-            log.info("Command response: {}", response);
-            return response.toString();
-        } catch (Exception e) {
-            log.error("Failed to read from server: {}", e.getMessage());
-            return "I AM NOT ABLE TO READ THE RESPONSE";
         }
+        return ResponseEntity.ok(excelData);
     }
 
-    public void login() throws InterruptedException {
-        log.info("Logging you in ...");
-        sendCommand("username");
-        Thread.sleep(1000);
-        sendCommand("password");
-        Thread.sleep(1000);
-        log.info("Login successful");
-    }
-}
 
-
-
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Vis.js Network Example</title>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
-    <style type="text/css">
-        #mynetwork {
-            width: 800px;
-            height: 600px;
-            border: 1px solid lightgray;
-        }
-    </style>
-</head>
-<body>
-    <div>
-        <select id="directionFilter">
-            <option value="all">All</option>
-            <option value="incoming">Incoming</option>
-            <option value="outgoing">Outgoing</option>
-        </select>
-    </div>
-    <div id="mynetwork"></div>
-
-    <script type="text/javascript">
-        // Create an array with nodes
-        var nodes = new vis.DataSet([
-            { id: 1, label: 'Node 1' },
-            { id: 2, label: 'Node 2' },
-            { id: 3, label: 'Node 3' },
-            { id: 4, label: 'Node 4' },
-            { id: 5, label: 'Node 5' }
-        ]);
-
-
-
-
-
-
-import React, { useState, useEffect, useRef } from 'react';
-import { DataSet, Network } from 'vis-network';
-
-const NetworkGraph = ({ nodesData, edgesData }) => {
-  const visJsRef = useRef(null);
-  const [network, setNetwork] = useState(null);
-  const [filteredNodes, setFilteredNodes] = useState(nodesData);
-
-  useEffect(() => {
-    if (visJsRef.current && filteredNodes) {
-      const data = {
-        nodes: new DataSet(filteredNodes),
-        edges: new DataSet(edgesData),
-      };
-      const options = {};
-      setNetwork(new Network(visJsRef.current, data, options));
-    }
-  }, [visJsRef, filteredNodes, edgesData]);
-
-  const filterNodes = (direction) => {
-    const filtered = nodesData.filter(node => {
-      if (direction === 'incoming') {
-        return edgesData.some(edge => edge.to === node.id);
-      } else if (direction === 'outgoing') {
-        return edgesData.some(edge => edge.from === node.id);
-      }
-      return true;
-    });
-    setFilteredNodes(filtered);
-  };
-
-  return (
-    <div>
-      <select onChange={(e) => filterNodes(e.target.value)}>
-        <option value="incoming">Incoming</option>
-        <option value="outgoing">Outgoing</option>
-      </select>
-      <div ref={visJsRef} style={{ height: '500px' }} />
-    </div>
-  );
-};
-
-export default NetworkGraph;
-
-
-        // Create an array with edges
-        var edges = new vis.DataSet([
-            { from: 1, to: 2 },
-            { from: 1, to: 3 },
-            { from: 2, to: 4 },
-            { from: 2, to: 5 },
-            { from: 3, to: 5 }
-        ]);
-
-        // Create a network
-        var container = document.getElementById('mynetwork');
-        var data = {
-            nodes: nodes,
-            edges: edges
-        };
-        var options = {};
-        var network = new vis.Network(container, data, options);
-
-        // Add event listener to the drop-down
-        document.getElementById('directionFilter').addEventListener('change', function() {
-            var selectedValue = this.value;
-            filterNodes(selectedValue);
-        });
-
-        function filterNodes(direction) {
-            var filteredNodes = new vis.DataSet(nodes.get());
-
-            if (direction === 'incoming') {
-                // Get nodes with incoming edges
-                var incomingNodes = new Set(edges.get().map(edge => edge.to));
-                filteredNodes = new vis.DataSet(nodes.get().filter(node => incomingNodes.has(node.id)));
-            } else if (direction === 'outgoing') {
-                // Get nodes with outgoing edges
-                var outgoingNodes = new Set(edges.get().map(edge => edge.from));
-                filteredNodes = new vis.DataSet(nodes.get().filter(node => outgoingNodes.has(node.id)));
-            }
-
-            // Update the network with the filtered nodes
-            network.setData({
-                nodes: filteredNodes,
-                edges: edges
-            });
-        }
-    </script>
-</body>
-</html>
-
-
- public List<GraphNode> getAllNodes(final List<ClientSetupNode> clientSetupNodeList){
-        final List<GraphNode> nodes= new ArrayList<>();
-        final boolean[] conditionMetForAfs = { false };
-        final boolean[] conditionMetForPaysource = { false };
-
-        clientSetupNodeList.forEach(e ->{
-            final String id = e.getTpaSeqId();
-            final String label = e.getTpaSeqId();
-            final String title = e.getDirection();
-            String color = colorPalette.get(0);
-            final String content = e.toString();
-            if(!conditionMetForAfs[0]) {
-                if (e.isAFSReleasedTpa() == true) {
-                    nodes.add(GraphNode.builder().id("1").label("AFS").title("AFS_Released_TPA").content("AFS_Released_TPA")
-                            .color(Color.builder().background("#CF9FFF").build()).x(-300).y(10).shape("ellipse").font(
-                                    Font.builder().size(40).build()).build());
-                    conditionMetForAfs[0] = true;
-                }
-            } else if (!conditionMetForPaysource[0]) {
-                if (e.isPaysourceSenderTPA()==true) {
-                    nodes.add(GraphNode.builder().id("2").label("Paysource").title("Paysource").content("Paysource").color(
-                            Color.builder().background("blue").build()).x(-300).y(10).shape("ellipse").font(
-                            Font.builder().size(40).build()).build());
-                    conditionMetForPaysource[0]=true;
-                }
-            }
-            nodes.add(GraphNode.builder().id(id).label(label).title(title).content(content).color(
-                    Color.builder().background(color).build()).build());
-
-        });
-//        nodes.get(0).setFixed(true);
-        return nodes;
+    @GetMapping("/checkStatus")
+    public ResponseEntity<String> checkStatus() {
+        return ResponseEntity.ok("OK");
     }
 
-@Data
-@Builder
-public class GraphNode {
+    @PostMapping("/extractData")
+    public SCIResponse extractData(@RequestBody SCIModel parseFileInputRq) {
+        log.info("Inside ReadFileController - extractData : ParseFileInputRq - " + parseFileInputRq);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<SCIModel> request = new HttpEntity<>(parseFileInputRq, headers);
+        log.info("calling nAS service");
+        return new RestTemplate().exchange("https://opstool-gateway-service-pp-green-test.apps.prod.na-6x.gap.jpmchase.net/NAS/extractData", HttpMethod.POST,request, SCIResponse.class).getBody();
+    }
 
-    private String id;
-    private String label;
-    private Boolean fixed;
-    private String title;
-    private Color color;
-    private String content;
-    private Integer x;
-    private Integer y;
-    private String shape;
-    private Font font;
+    public static void main(String[] args) {
+        SCIModel model = SCIModel.builder().e2eId("S90290000969424").xmitId("100001019885188")
+                .filePathName("/data/fms/LLE/C5/ALIPAYUS.PAYSOURCE.ISO20022_PAIN_01Ver5.100001019885188.20240702213542").build();
+        log.info("model {} ",new Gson().toJson(model));
+    }
 
 }
-
-@Builder
-@Data
-@Slf4j
-public class ClientSetupNode {               // ClientSetupNode   // Type. H2H TPA, MFTS Route AFS seutp, PaysourceSetup, Camps setup
-
-    public enum ClientSetupType {
-        H2H_TPA,
-        H2H_SYS_TPA,
-        H2H_RCVR_TPA,
-        MFT_ROUTE,
-        AFS_SETUP,
-        NDM_STEP,
-        CCAP_SETUP,
-        WPI_SETUP
-    }
-
-
-    public enum H2H_TPA_TYPE {
-        DEFAULT,
-        TRANSL_ENG_H2H,
-        TRANSL_ENG_CUSTOM,
-        DEST_APP_NM_P2P_LOB,
-        DEST_APP_NM_P2P_PARTNER,
-        DEST_APP_NM_NDM,
-        DEST_APP_NM_PARTNER,
-        DEST_APP_NM_TPA_CHAIN,
-        DEST_APP_NM_TPA_FileHub,
-        DEST_APP_NM_TPA_OBFileHub,
-
-    }
-
-    ClientSetupType nodeType;
-    H2H_TPA_TYPE h2hTPAType;
-
-    String nextTpaKey;
-    ClientSetupNode nextNode;
-    ClientSetupType nextNodeType;
-
-    List<ClientSetupNode> parentNodes;
-
-    String partner;
-    String tpaSeqId;
-
-    //H2H Specific fields.
-    String data_type_cd;
-    String data_format_cd;
-    String tpaKeyWithDir;
-    String direction;
-    String dest_app_nm;
-
-    String rcvr_id;
-    String rcvr_tpa_id;
-
-    boolean isAFSReleasedTpa;
-    boolean isPaysourceSenderTPA;
-    String trcking_Id;
-    String mappedCCAPID;
-
-    String IN_NDM_SCRIPT_TX;
-    String OUT_NDM_SCRIPT_TX;
-    String IN_MF_DEST_RUN_TSK_SOPT_TX;
-    String OUT_MF_DEST_RUN_TSK_SOPT_TX;
-
-    LocalDateTime latestActivityTime;
-
-    Map<Integer,String> xlsRowData;
-
-    String translationEngine;
-    String src_data_fmt;
-    String trgt_data_fmt;
-
-
-    public boolean isAFSReleasedInFamily() {
-        if (isAFSReleasedTpa) {
-            return true;
-        } else if(nextNode != null) {
-            boolean result = false;
-            result |= nextNode.isAFSReleasedInFamily();
-            return result;
-        } else {
-            return false;
-        }
-    }
-
-    public boolean isIncoming() {
-        return StringUtils.equalsIgnoreCase(this.direction,"Incoming");
-    }
-
-    public boolean hasTranslationEnginePriority() {
-        return StringUtils.equalsIgnoreCase(this.translationEngine,"H2H")
-                || StringUtils.equalsIgnoreCase(this.translationEngine,"Custom");
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(tpaKeyWithDir);
-    }
-
-    public String toString() {
-        return "ClientSetUpFlowInfo{" + "tpaSeqId='" + tpaSeqId + '\'' + ", tpaKeyWithDir=" + tpaKeyWithDir + ", direction='" + direction + '\'' + '}';
-    }
-}
-
-    final List<String> colorPalette = List.of("#50C878", "#D30F23","#EAEA71","#F68066");
-
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-public class GraphNodeServiceTest {
-
-    @Mock
-    private ColorPalette colorPalette; // Mock the ColorPalette class
-
-    @InjectMocks
-    private GraphNodeService graphNodeService; // The class containing getAllNodes method
-
-    @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        when(colorPalette.get(0)).thenReturn("#FFFFFF"); // Assuming the color palette returns white as the first color
-    }
-
-    @Test
-    public void testGetAllNodes() {
-        List<ClientSetupNode> clientSetupNodeList = new ArrayList<>();
-        ClientSetupNode node1 = mock(ClientSetupNode.class);
-        when(node1.getTpaSeqId()).thenReturn("node1");
-        when(node1.getDirection()).thenReturn("direction1");
-        when(node1.isAFSReleasedTpa()).thenReturn(true);
-        when(node1.isPaysourceSenderTPA()).thenReturn(false);
-
-        ClientSetupNode node2 = mock(ClientSetupNode.class);
-        when(node2.getTpaSeqId()).thenReturn("node2");
-        when(node2.getDirection()).thenReturn("direction2");
-        when(node2.isAFSReleasedTpa()).thenReturn(false);
-        when(node2.isPaysourceSenderTPA()).thenReturn(true);
-
-        clientSetupNodeList.add(node1);
-        clientSetupNodeList.add(node2);
-
-        List<GraphNode> result = graphNodeService.getAllNodes(clientSetupNodeList);
-
-        assertEquals(4, result.size()); // 2 original nodes + 2 conditional nodes
-
-        // Check first AFS node
-        GraphNode afsNode = result.get(0);
-        assertEquals("1", afsNode.getId());
-        assertEquals("AFS", afsNode.getLabel());
-        assertEquals("AFS_Released_TPA", afsNode.getTitle());
-        assertEquals("AFS_Released_TPA", afsNode.getContent());
-        assertEquals("#CF9FFF", afsNode.getColor().getBackground());
-
-        // Check first Paysource node
-        GraphNode paysourceNode = result.get(1);
-        assertEquals("2", paysourceNode.getId());
-        assertEquals("Paysource", paysourceNode.getLabel());
-        assertEquals("Paysource", paysourceNode.getTitle());
-        assertEquals("Paysource", paysourceNode.getContent());
-        assertEquals("blue", paysourceNode.getColor().getBackground());
-
-        // Check original nodes
-        GraphNode graphNode1 = result.get(2);
-        assertEquals("node1", graphNode1.getId());
-        assertEquals("node1", graphNode1.getLabel());
-        assertEquals("direction1", graphNode1.getTitle());
-        assertEquals(node1.toString(), graphNode1.getContent());
-        assertEquals("#FFFFFF", graphNode1.getColor().getBackground());
-
-        GraphNode graphNode2 = result.get(3);
-        assertEquals("node2", graphNode2.getId());
-        assertEquals("node2", graphNode2.getLabel());
-        assertEquals("direction2", graphNode2.getTitle());
-        assertEquals(node2.toString(), graphNode2.getContent());
-        assertEquals("#FFFFFF", graphNode2.getColor().getBackground());
-    }
-}
-
-
-
-
-
-
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-public class YourClassNameTest {
-
-    private YourClassName yourClassInstance;
-    private List<ClientSetupNode> clientSetupNodeList;
-
-    @BeforeEach
-    public void setUp() {
-        yourClassInstance = new YourClassName();
-
-        clientSetupNodeList = new ArrayList<>();
-
-        // Sample data setup
-        ClientSetupNode node1 = ClientSetupNode.builder()
-                .tpaSeqId("1")
-                .direction("Incoming")
-                .isAFSReleasedTpa(true)
-                .build();
-
-        ClientSetupNode node2 = ClientSetupNode.builder()
-                .tpaSeqId("2")
-                .direction("Outgoing")
-                .isPaysourceSenderTPA(true)
-                .build();
-
-        ClientSetupNode node3 = ClientSetupNode.builder()
-                .tpaSeqId("3")
-                .direction("Incoming")
-                .build();
-
-        clientSetupNodeList.add(node1);
-        clientSetupNodeList.add(node2);
-        clientSetupNodeList.add(node3);
-    }
-
-    @Test
-    public void testGetAllNodes() {
-        List<GraphNode> result = yourClassInstance.getAllNodes(clientSetupNodeList);
-
-        assertNotNull(result);
-        assertEquals(5, result.size());
-
-        // Validate the AFS node
-        GraphNode afsNode = result.get(0);
-        assertEquals("1", afsNode.getId());
-        assertEquals("AFS", afsNode.getLabel());
-        assertEquals("AFS_Released_TPA", afsNode.getTitle());
-        assertEquals("AFS_Released_TPA", afsNode.getContent());
-        assertEquals("#CF9FFF", afsNode.getColor().getBackground());
-        assertEquals("ellipse", afsNode.getShape());
-
-        // Validate the Paysource node
-        GraphNode paysourceNode = result.get(1);
-        assertEquals("2", paysourceNode.getId());
-        assertEquals("Paysource", paysourceNode.getLabel());
-        assertEquals("Paysource", paysourceNode.getTitle());
-        assertEquals("Paysource", paysourceNode.getContent());
-        assertEquals("blue", paysourceNode.getColor().getBackground());
-        assertEquals("ellipse", paysourceNode.getShape());
-
-        // Validate the other nodes
-        GraphNode node1 = result.get(2);
-        assertEquals("1", node1.getId());
-        assertEquals("1", node1.getLabel());
-
-        GraphNode node2 = result.get(3);
-        assertEquals("2", node2.getId());
-        assertEquals("2", node2.getLabel());
-
-        GraphNode node3 = result.get(4);
-        assertEquals("3", node3.getId());
-        assertEquals("3", node3.getLabel());
-    }
-}
-
-
-package com.jpmc.opstool.mft.telnet;
-
-import org.apache.commons.net.telnet.TelnetClient;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class TelnetServiceTest {
-
-    @InjectMocks
-    private TelnetService telnetService;
-
-    @Mock
-    private TelnetClient telnetClient;
-
-    @Mock
-    private BufferedReader inputReader;
-
-    @Mock
-    private PrintWriter outputWriter;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        telnetService.setTelnetClient(telnetClient);
-        telnetService.setInputReader(inputReader);
-        telnetService.setOutputWriter(outputWriter);
-        // Set the command timeout value (e.g., 5000 ms)
-        ReflectionTestUtils.setField(telnetService, "telnetCmdTimeout", 5000L);
-    }
-
-    @Test
-    void testConnectSuccess() throws Exception {
-        String server = "localhost";
-        int port = 23;
-
-        telnetService.connect(server, port);
-
-        verify(telnetClient, times(1)).connect(server, port);
-        verify(inputReader, never()).readLine(); // No reading is expected at this point
-        assertTrue(telnetClient.isConnected());
-    }
-
-    @Test
-    void testConnectFailure() throws Exception {
-        String server = "localhost";
-        int port = 23;
-
-        doThrow(new RuntimeException("Connection failed")).when(telnetClient).connect(server, port);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            telnetService.connect(server, port);
-        });
-
-        assertEquals("Connection failed", exception.getMessage());
-        verify(telnetClient, times(1)).connect(server, port);
-    }
-
-    @Test
-    void testDisconnectSuccess() throws Exception {
-        when(telnetClient.isConnected()).thenReturn(true);
-
-        telnetService.disconnect();
-
-        verify(telnetClient, times(1)).disconnect();
-    }
-
-    @Test
-    void testDisconnectWhenNotConnected() throws Exception {
-        when(telnetClient.isConnected()).thenReturn(false);
-
-        telnetService.disconnect();
-
-        verify(telnetClient, never()).disconnect(); // No disconnection if not connected
-    }
-
-    @Test
-    void testSendCommandWithResponse() throws Exception {
-        String command = "ls";
-        when(inputReader.ready()).thenReturn(true);
-        when(inputReader.readLine()).thenReturn("file1.txt", "file2.txt", "$");
-
-        String response = telnetService.sendCommand(command);
-
-        verify(outputWriter, times(1)).println(command);
-        assertTrue(response.contains("file1.txt"));
-        assertTrue(response.contains("file2.txt"));
-    }
-
-    @Test
-    void testSendCommandNoResponse() throws Exception {
-        String command = "ls";
-        when(inputReader.ready()).thenReturn(false);  // Simulating no response
-
-        String response = telnetService.sendCommand(command);
-
-        verify(outputWriter, times(1)).println(command);
-        assertEquals("I AM NOT ABLE TO READ THE RESPONSE", response);
-    }
-
-    @Test
-    void testLogin() throws InterruptedException {
-        telnetService.login();
-
-        verify(outputWriter, times(1)).println("username");
-        verify(outputWriter, times(1)).println("password");
-    }
-}
-
