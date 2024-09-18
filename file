@@ -44,3 +44,96 @@ public  void extractUniqueIdToXmitIdDetails(final InputStream fileInputStream) t
             }
         }
     }
+
+
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+public class YourClassTest {
+
+    // Constants for the column names
+    private static final String[] columnsNames = {"MSG_ID", "REL_TRN_REF", "XMIT_ID"};
+
+    @BeforeEach
+    public void setUp() {
+        // Clear the SCICache before each test
+        SCICache.uniqueKeyToXmitIdMap = new HashMap<>();
+    }
+
+    @Test
+    public void testExtractUniqueIdToXmitIdDetails_Success() throws IOException {
+        // Create a mock Excel file in memory with required columns and data
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("TestSheet");
+
+        // Create header row
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("MSG_ID");
+        headerRow.createCell(1).setCellValue("REL_TRN_REF");
+        headerRow.createCell(2).setCellValue("XMIT_ID");
+
+        // Create data row
+        Row dataRow = sheet.createRow(1);
+        dataRow.createCell(0).setCellValue("message123");
+        dataRow.createCell(1).setCellValue("e2e123");
+        dataRow.createCell(2).setCellValue("xmit123");
+
+        // Write workbook to ByteArrayInputStream
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(workbookToByteArray(workbook));
+
+        YourClass yourClass = new YourClass();
+
+        yourClass.extractUniqueIdToXmitIdDetails(inputStream);
+
+        // Assert that the cache has the correct mapping
+        String expectedUniqueKey = "message123_e2e123";
+        assertEquals("xmit123", SCICache.uniqueKeyToXmitIdMap.get(expectedUniqueKey));
+
+        workbook.close();
+    }
+
+    @Test
+    public void testExtractUniqueIdToXmitIdDetails_ColumnMissing() throws IOException {
+        // Create a mock Excel file in memory without the required columns
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("TestSheet");
+
+        // Create header row with missing columns
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("INVALID_COLUMN");
+
+        // Write workbook to ByteArrayInputStream
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(workbookToByteArray(workbook));
+
+        YourClass yourClass = new YourClass();
+
+        // Assert that an IllegalArgumentException is thrown
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            yourClass.extractUniqueIdToXmitIdDetails(inputStream);
+        });
+
+        assertTrue(exception.getMessage().contains("One or more columns not found in sheet"));
+
+        workbook.close();
+    }
+
+    private byte[] workbookToByteArray(Workbook workbook) throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            workbook.write(bos);
+            return bos.toByteArray();
+        }
+    }
+}
+
