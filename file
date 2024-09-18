@@ -34,3 +34,134 @@ public void readExcelForH2hData(final InputStream fileInputStream) throws IOExce
         }
 
     }
+
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.*;
+
+public class ExcelReaderTest {
+
+    @InjectMocks
+    private ExcelReader excelReader;  // Assuming your class name is ExcelReader
+
+    @Mock
+    private InputStream fileInputStream;
+
+    @Mock
+    private XSSFWorkbook workbook;
+
+    @Mock
+    private Sheet sheet;
+
+    @Mock
+    private Row row;
+
+    @Mock
+    private Cell xmitIdCell, partnerIdCell, fileNameCell, fileLocationCell, objIdCell, onCloudCell, cloudCertIdCell;
+
+    private Map<String, SCIModel> xmitIdToSCIModalMap;
+
+    @Before
+    public void setUp() throws IOException {
+        MockitoAnnotations.initMocks(this);
+
+        // Initialize the map
+        xmitIdToSCIModalMap = new HashMap<>();
+        
+        // Mock workbook, sheet, and row behavior
+        when(workbook.getSheetAt(0)).thenReturn(sheet);
+        when(fileInputStream.read(any(byte[].class))).thenReturn(-1);  // Simulate end of input stream
+        when(sheet.iterator()).thenReturn(mockRowIterator());
+        
+        // Mock row and cell data
+        when(row.getRowNum()).thenReturn(1);  // Skip header row
+        when(row.getCell(0)).thenReturn(xmitIdCell);
+        when(row.getCell(1)).thenReturn(partnerIdCell);
+        when(row.getCell(2)).thenReturn(fileNameCell);
+        when(row.getCell(3)).thenReturn(fileLocationCell);
+        when(row.getCell(4)).thenReturn(objIdCell);
+        when(row.getCell(5)).thenReturn(onCloudCell);
+        when(row.getCell(6)).thenReturn(cloudCertIdCell);
+
+        // Mock cell values
+        when(xmitIdCell.getStringCellValue()).thenReturn("XMIT123");
+        when(partnerIdCell.getStringCellValue()).thenReturn("Partner001");
+        when(fileNameCell.getStringCellValue()).thenReturn("file.txt");
+        when(fileLocationCell.getStringCellValue()).thenReturn("/location");
+        when(objIdCell.getStringCellValue()).thenReturn("OBJ123");
+        when(onCloudCell.getStringCellValue()).thenReturn("true");
+        when(cloudCertIdCell.getStringCellValue()).thenReturn("CERT001");
+    }
+
+    private Iterator<Row> mockRowIterator() {
+        Row headerRow = mock(Row.class);
+        when(headerRow.getRowNum()).thenReturn(0);  // Mock header row
+        
+        when(sheet.iterator()).thenReturn(Arrays.asList(headerRow, row).iterator());
+        return sheet.iterator();
+    }
+
+    @Test
+    public void testReadExcelForH2hData_ValidData() throws IOException {
+        // Act
+        excelReader.readExcelForH2hData(fileInputStream);
+
+        // Assert
+        assertEquals(1, xmitIdToSCIModalMap.size());
+        SCIModel sciModel = xmitIdToSCIModalMap.get("XMIT123");
+        assertEquals("Partner001", sciModel.getPartnerId());
+        assertEquals("file.txt", sciModel.getFilePathName());
+        assertEquals("/location", sciModel.getFileLocation());
+        assertEquals("OBJ123", sciModel.getObjId());
+        assertEquals("true", sciModel.getOnCloud());
+        assertEquals("CERT001", sciModel.getCloudCertId());
+    }
+
+    @Test(expected = IOException.class)
+    public void testReadExcelForH2hData_ThrowsIOException() throws IOException {
+        // Simulate IOException
+        doThrow(new IOException()).when(fileInputStream).read(any(byte[].class));
+
+        excelReader.readExcelForH2hData(fileInputStream);
+    }
+
+    @Test
+    public void testReadExcelForH2hData_EmptyFile() throws IOException {
+        // Mock empty sheet
+        when(sheet.iterator()).thenReturn(new ArrayList<Row>().iterator());
+
+        // Act
+        excelReader.readExcelForH2hData(fileInputStream);
+
+        // Assert
+        assertEquals(0, xmitIdToSCIModalMap.size());
+    }
+    
+    @Test
+    public void testReadExcelForH2hData_HeaderOnly() throws IOException {
+        // Mock only header row
+        Row headerRow = mock(Row.class);
+        when(headerRow.getRowNum()).thenReturn(0);
+        when(sheet.iterator()).thenReturn(Arrays.asList(headerRow).iterator());
+
+        // Act
+        excelReader.readExcelForH2hData(fileInputStream);
+
+        // Assert
+        assertEquals(0, xmitIdToSCIModalMap.size());
+    }
+}
+
