@@ -122,3 +122,92 @@ class SCIFileDownloadServiceTest {
     // Additional test cases for exceptions or edge cases can be added
 }
 
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+import com.opencsv.CSVWriter;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+class SCIFileDownloadServiceTest {
+
+    @InjectMocks
+    private SCIFileDownloadService sciFileDownloadService;
+
+    @Mock
+    private CSVWriter csvWriter;
+
+    @Mock
+    private FileInputStream fileInputStream;
+
+    @Mock
+    private OutputStreamWriter writer;
+
+    @Mock
+    private File file;
+
+    private Map<String, SCIModel> xmitIdDownloadStatusMap;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        xmitIdDownloadStatusMap = new HashMap<>();
+        SCIModel sciModel = new SCIModel();
+        xmitIdDownloadStatusMap.put("123", sciModel);
+    }
+
+    @Test
+    void testGetResponseAsFile_Success() throws IOException {
+        // Arrange
+        String fileName = "SCIFileDownLoadResponse_test.csv";
+        when(file.length()).thenReturn(100L);
+        when(file.getName()).thenReturn(fileName);
+
+        // Act
+        ResponseEntity<InputStreamResource> response = sciFileDownloadService.getResponseAsFile(
+                xmitIdDownloadStatusMap, csvWriter, writer, fileInputStream, file);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(100L, response.getHeaders().getContentLength());
+        assertEquals(MediaType.APPLICATION_OCTET_STREAM, response.getHeaders().getContentType());
+        assertTrue(response.getHeaders().get(HttpHeaders.CONTENT_DISPOSITION).get(0).contains(fileName));
+        assertNotNull(response.getBody());
+
+        // Verify CSV writing process
+        verify(csvWriter, times(1)).writeNext(any());
+        verify(csvWriter, times(xmitIdDownloadStatusMap.size() + 1)).writeNext(any()); // Headers + Rows
+    }
+
+    @Test
+    void testGetResponseAsFile_EmptyMap() throws IOException {
+        // Arrange
+        Map<String, SCIModel> emptyMap = new HashMap<>();
+
+        // Act
+        ResponseEntity<InputStreamResource> response = sciFileDownloadService.getResponseAsFile(
+                emptyMap, csvWriter, writer, fileInputStream, file);
+
+        // Assert
+        assertNull(response);
+    }
+}
+
+
