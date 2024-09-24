@@ -1,1 +1,37 @@
+ResponseEntity<InputStreamResource> getResponseAsFile(final Map<String, SCIModel> xmitIdDownloadStatusMap) throws IOException {
+        if(!xmitIdDownloadStatusMap.isEmpty()){
+            String fileName = "SCIFileDownLoadResponse_"+Math.random()+".csv";
+            try(Writer writer = new OutputStreamWriter(new FileOutputStream(fileName), StandardCharsets.UTF_8);
+                    CSVWriter csvWriter = new CSVWriter(writer)) {
 
+                Class<?> clazz = SCIModel.class;
+
+                Field[] fields = clazz.getDeclaredFields();
+                String[] headers = new String[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    headers[i] = fields[i].getName();
+                }
+                csvWriter.writeNext(headers);
+
+                for (final Map.Entry<String, SCIModel> entry : xmitIdDownloadStatusMap.entrySet()) {
+                    //
+                    csvWriter.writeNext(entry.getValue().toArray());
+
+                }
+            }
+
+            log.info(" download files report successfully written with name {}",fileName);
+            File file = new File(fileName);
+
+            FileInputStream inputStream = new FileInputStream(file);
+            InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+            HttpHeaders headers  = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION,"attachment : filename="+file.getName());
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentLength(file.length())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(inputStreamResource);
+        }
+        return null;
+    }
