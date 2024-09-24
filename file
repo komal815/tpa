@@ -17,3 +17,89 @@
         log.info("New request ended {}",  requestId);
         return stagingEncapResponse;
     }
+
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+
+import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class SplitterServiceTest {
+
+    @Mock
+    private Environment environment;
+
+    @Mock
+    private HelperUtility helperUtility;
+
+    @InjectMocks
+    private SplitterService splitterService;
+
+    private static final String PROFILE_ACTIVE = "dev";
+    private static final String TABLE_NAME_1 = "table_1";
+    private static final String TABLE_NAME_2 = "table_2";
+
+    @BeforeEach
+    public void setup() {
+        // Set up any common initialization logic
+    }
+
+    @Test
+    public void testAddStagingTablesData_success() {
+        // Prepare data
+        SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
+        request.setPartnerId("partner_1");
+        request.setFileType("fileType_1");
+
+        // Mock external dependencies
+        when(helperUtility.generateRequestId()).thenReturn("req_12345");
+        when(environment.getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE)).thenReturn(PROFILE_ACTIVE);
+        doNothing().when(splitterService).createStagingRecord(anyString(), any(), anyString());
+        when(splitterService.rollbackTableInsertion(anyString(), anyString(), anyString())).thenReturn(true);
+
+        // Invoke method
+        SplitterDataStagingEncapResponse response = splitterService.addStagingTablesData(request);
+
+        // Verify logic
+        verify(splitterService, times(2)).createStagingRecord(anyString(), eq(request), anyString());
+        assertEquals(HttpStatus.OK, response.getHttpStatus());
+        assertEquals("req_12345", response.getRequestIds());
+        assertEquals("Successfully Added all Data..!", response.getMessage());
+    }
+
+    @Test
+    public void testAddStagingTablesData_failure() {
+        // Prepare data
+        SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
+        request.setPartnerId("partner_1");
+        request.setFileType("fileType_1");
+
+        // Mock external dependencies
+        when(helperUtility.generateRequestId()).thenReturn("req_12345");
+        when(environment.getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE)).thenReturn(PROFILE_ACTIVE);
+        doNothing().when(splitterService).createStagingRecord(anyString(), any(), anyString());
+        when(splitterService.rollbackTableInsertion(anyString(), anyString(), anyString())).thenReturn(false);
+
+        // Invoke method
+        SplitterDataStagingEncapResponse response = splitterService.addStagingTablesData(request);
+
+        // Verify logic
+        verify(splitterService, times(2)).createStagingRecord(anyString(), eq(request), anyString());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getHttpStatus());
+        assertEquals("req_12345", response.getRequestIds());
+        assertEquals("An error Occurred while processing your request..!", response.getMessage());
+    }
+}
+
