@@ -18,6 +18,44 @@
         return stagingEncapResponse;
     }
 
+public static String generateRequestId(){
+        long timestamp = System.currentTimeMillis()%10000000000L;
+        int randomNum = new Random().nextInt(10000);
+        String requestId = String.format("%10d%04d", timestamp, randomNum);
+        requestId = requestId.substring(0,12);
+        return requestId;
+    }
+
+public static final String SPRING_PROFILE_ACTIVE = "spring.profiles.active";
+
+List<SplitterDataResponse> createStagingRecord(String tableName, SplitterDataStagingEncapRequest request
+            , String requestId){
+        TableService service = null;
+        List<SplitterDataResponse> dataResponseList = null;
+        if(tableName.equals(SplitterDataConstants.H2H_MULTI_ACK_ROUTING_LOOKUP)) {
+            service = factory.getTableService(tableName);
+            dataResponseList = addH2hMultiAckRoutingLookupStagings(request, service, tableName, requestId);
+        } else if((tableName.equals(SplitterDataConstants.H2H_L0_MULTI_ACK_ROUTING_LOOKUP)) &&
+                ((request.getFileType().equals(SplitterDataConstants.GFF) ||request.getFileType().equals(SplitterDataConstants.EDIFACT) ))) {
+            service = factory.getTableService(tableName);
+            dataResponseList = addH2hL0MultiAckRoutingLookupStagings(request, service, tableName, requestId);
+        } else if(tableName.equals(SplitterDataConstants.H2H_EMAIL_ROUTING_LOOKUP)) {
+            service = factory.getTableService(tableName);
+            dataResponseList = addEmailRoutingLookupStagings(request, service, tableName, requestId);
+        }else if(tableName.equals(SplitterDataConstants.TPA_TEMPLATE_MAP)) {
+            service = factory.getTableService(tableName);
+            dataResponseList = addTPATemplateMapStagings(request, service, tableName, requestId);
+        }else if(tableName.equals(SplitterDataConstants.GFF_PARTNER_CONFIG_TBL) &&
+                (request.getFileType().equals(SplitterDataConstants.GFF) ||request.getFileType().equals(SplitterDataConstants.EDIFACT) )) {
+            service = factory.getTableService(tableName);
+            dataResponseList = createGFFPartnerConfigTable(request, service, tableName, requestId);
+        }else if(tableName.equals(SplitterDataConstants.H2H_MIGRATION_PARTNER_TPA_LOOKUP) ) {
+            service = factory.getTableService(tableName);
+            dataResponseList = addH2hMigrationPartnerTPALookup(request, service, tableName, requestId);
+        }
+        return dataResponseList;
+    }
+
 
 
 import org.junit.jupiter.api.BeforeEach;
