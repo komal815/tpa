@@ -1,74 +1,30 @@
-sopublic H2hSplitterAckOnboardingTracker trackerRecordMapping(String stagingId, String reqId, String tableName, String requestedBy, String activeProfile){
-        H2hSplitterAckOnboardingTracker trackerRecord = new H2hSplitterAckOnboardingTracker();
+public GffPartnerConfigTblStaging gffPartnerConfigTblStagingMapping(SplitterDataStagingEncapRequest request, String activeProfile){
         final String createdDateTime = HelperUtility.getCurrentDateTime();
-        trackerRecord.setReqId(reqId);
-        trackerRecord.setStagingId(stagingId);
-        trackerRecord.setStagingTableName(tableName);
-        trackerRecord.setCreatedBy(requestedBy);
-        trackerRecord.setCreDtTm(createdDateTime);
-        trackerRecord.setUpdatedBy(requestedBy);
-        trackerRecord.setUpdtDtTm(createdDateTime);
-        trackerRecord.setApprovalStatus((activeProfile.equalsIgnoreCase(SplitterDataConstants.PROD))?
+        String fileType = null;
+        GffPartnerConfigTbl gffPartnerConfigTbl =  request.getPayments().getGffPartnerConfigTbl();
+        GffPartnerConfigTblStaging gffPartnerConfigTblStaging = new GffPartnerConfigTblStaging();
+        gffPartnerConfigTblStaging.setPtnrId(gffPartnerConfigTbl.getPartnerId());
+        gffPartnerConfigTblStaging.setPtnrType(SplitterDataStagingConstants.GFF);
+        /*if(("EDIFACT".equals(request.getFileType())) || ("IDOC".equals(request.getFileType()))){
+            gffPartnerConfigTblStaging.setPtnrType("GFF");
+        } else{
+            gffPartnerConfigTblStaging.setPtnrType(request.getFileType());
+        }*/
+        gffPartnerConfigTblStaging.setSndrId(gffPartnerConfigTbl.getSndrId());
+        gffPartnerConfigTblStaging.setBtValidationRequired(gffPartnerConfigTbl.getBtValidationRequired());
+        gffPartnerConfigTblStaging.setFtValidationRequired(gffPartnerConfigTbl.getFtValidationRequired());
+        gffPartnerConfigTblStaging.setMrRequired(gffPartnerConfigTbl.getMrRequired());
+        gffPartnerConfigTblStaging.setEmrRequired(gffPartnerConfigTbl.getEmrRequired());
+        gffPartnerConfigTblStaging.setSemrRequired(gffPartnerConfigTbl.getSemrRequired());
+        gffPartnerConfigTblStaging.setHrRequired(gffPartnerConfigTbl.getHrRequired());
+        gffPartnerConfigTblStaging.setEhrRequired(gffPartnerConfigTbl.getEhrRequired());
+        gffPartnerConfigTblStaging.setCreDtTm(createdDateTime);
+        gffPartnerConfigTblStaging.setLastUpdtUsr(gffPartnerConfigTbl.getCreatedBy()!=null?gffPartnerConfigTbl.getCreatedBy():SplitterDataStagingConstants.H2H);
+        gffPartnerConfigTblStaging.setLastUpdtTm(createdDateTime);
+        gffPartnerConfigTblStaging.setRequestType(SplitterDataStagingConstants.ADD);
+        gffPartnerConfigTblStaging.setRequestStatus((activeProfile.equalsIgnoreCase(SplitterDataConstants.PROD))?
                 SplitterDataStagingConstants.PENDING : SplitterDataStagingConstants.APPROVED);
-        return trackerRecord;
+        gffPartnerConfigTblStaging.setVersionTrackNumber(SplitterDataStagingConstants.ZERO);
+        gffPartnerConfigTblStaging.setMkrCkrRemarks(SplitterDataStagingConstants.Y);
+        return gffPartnerConfigTblStaging;
     }
-
-
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class YourClassNameTest {
-
-    private YourClassName yourClassInstance;
-
-    @BeforeEach
-    void setUp() {
-        yourClassInstance = new YourClassName();
-    }
-
-    @Test
-    void testTrackerRecordMapping_ProdProfile() {
-        // Mocking HelperUtility to return a fixed current date-time
-        String expectedDateTime = "2023-01-01T00:00:00";
-        mockStatic(HelperUtility.class);
-        when(HelperUtility.getCurrentDateTime()).thenReturn(expectedDateTime);
-
-        // Input data
-        String stagingId = "stagingId123";
-        String reqId = "reqId123";
-        String tableName = "tableName123";
-        String requestedBy = "user123";
-        String activeProfile = "prod";
-
-        // Act
-        H2hSplitterAckOnboardingTracker result = yourClassInstance.trackerRecordMapping(stagingId, reqId, tableName, requestedBy, activeProfile);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(reqId, result.getReqId());
-        assertEquals(stagingId, result.getStagingId());
-        assertEquals(tableName, result.getStagingTableName());
-        assertEquals(requestedBy, result.getCreatedBy());
-        assertEquals(expectedDateTime, result.getCreDtTm());
-        assertEquals(requestedBy, result.getUpdatedBy());
-        assertEquals(expectedDateTime, result.getUpdtDtTm());
-        assertEquals(SplitterDataStagingConstants.PENDING, result.getApprovalStatus());
-    }
-
-    @Test
-    void testTrackerRecordMapping_NonProdProfile() {
-        // Mocking HelperUtility to return a fixed current date-time
-        String expectedDateTime = "2023-01-01T00:00:00";
-        mockStatic(HelperUtility.class);
-        when(HelperUtility.getCurrentDateTime()).thenReturn(expectedDateTime);
-
-        // Input data
-        String stagingId = "stagingId456";
-        String reqId = "reqId456";
-        String tableName = "tableName456";
-        String requestedBy = "user456";
-        String activeProfile = "dev";  // Non-prod profile
-
