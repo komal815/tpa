@@ -1,4 +1,4 @@
-public H2hSplitterAckOnboardingTracker trackerRecordMapping(String stagingId, String reqId, String tableName, String requestedBy, String activeProfile){
+sopublic H2hSplitterAckOnboardingTracker trackerRecordMapping(String stagingId, String reqId, String tableName, String requestedBy, String activeProfile){
         H2hSplitterAckOnboardingTracker trackerRecord = new H2hSplitterAckOnboardingTracker();
         final String createdDateTime = HelperUtility.getCurrentDateTime();
         trackerRecord.setReqId(reqId);
@@ -12,3 +12,63 @@ public H2hSplitterAckOnboardingTracker trackerRecordMapping(String stagingId, St
                 SplitterDataStagingConstants.PENDING : SplitterDataStagingConstants.APPROVED);
         return trackerRecord;
     }
+
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class YourClassNameTest {
+
+    private YourClassName yourClassInstance;
+
+    @BeforeEach
+    void setUp() {
+        yourClassInstance = new YourClassName();
+    }
+
+    @Test
+    void testTrackerRecordMapping_ProdProfile() {
+        // Mocking HelperUtility to return a fixed current date-time
+        String expectedDateTime = "2023-01-01T00:00:00";
+        mockStatic(HelperUtility.class);
+        when(HelperUtility.getCurrentDateTime()).thenReturn(expectedDateTime);
+
+        // Input data
+        String stagingId = "stagingId123";
+        String reqId = "reqId123";
+        String tableName = "tableName123";
+        String requestedBy = "user123";
+        String activeProfile = "prod";
+
+        // Act
+        H2hSplitterAckOnboardingTracker result = yourClassInstance.trackerRecordMapping(stagingId, reqId, tableName, requestedBy, activeProfile);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(reqId, result.getReqId());
+        assertEquals(stagingId, result.getStagingId());
+        assertEquals(tableName, result.getStagingTableName());
+        assertEquals(requestedBy, result.getCreatedBy());
+        assertEquals(expectedDateTime, result.getCreDtTm());
+        assertEquals(requestedBy, result.getUpdatedBy());
+        assertEquals(expectedDateTime, result.getUpdtDtTm());
+        assertEquals(SplitterDataStagingConstants.PENDING, result.getApprovalStatus());
+    }
+
+    @Test
+    void testTrackerRecordMapping_NonProdProfile() {
+        // Mocking HelperUtility to return a fixed current date-time
+        String expectedDateTime = "2023-01-01T00:00:00";
+        mockStatic(HelperUtility.class);
+        when(HelperUtility.getCurrentDateTime()).thenReturn(expectedDateTime);
+
+        // Input data
+        String stagingId = "stagingId456";
+        String reqId = "reqId456";
+        String tableName = "tableName456";
+        String requestedBy = "user456";
+        String activeProfile = "dev";  // Non-prod profile
+
