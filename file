@@ -1,160 +1,22 @@
-public GffPartnerConfigTblStaging gffPartnerConfigTblStagingMapping(SplitterDataStagingEncapRequest request, String activeProfile){
+public List<TpaTemplateMapStaging> tpaTemplateMapStagingMapping(SplitterDataStagingEncapRequest request, String activeProfile){
         final String createdDateTime = HelperUtility.getCurrentDateTime();
-        String fileType = null;
-        GffPartnerConfigTbl gffPartnerConfigTbl =  request.getPayments().getGffPartnerConfigTbl();
-        GffPartnerConfigTblStaging gffPartnerConfigTblStaging = new GffPartnerConfigTblStaging();
-        gffPartnerConfigTblStaging.setPtnrId(gffPartnerConfigTbl.getPartnerId());
-        gffPartnerConfigTblStaging.setPtnrType(SplitterDataStagingConstants.GFF);
-        /*if(("EDIFACT".equals(request.getFileType())) || ("IDOC".equals(request.getFileType()))){
-            gffPartnerConfigTblStaging.setPtnrType("GFF");
-        } else{
-            gffPartnerConfigTblStaging.setPtnrType(request.getFileType());
-        }*/
-        gffPartnerConfigTblStaging.setSndrId(gffPartnerConfigTbl.getSndrId());
-        gffPartnerConfigTblStaging.setBtValidationRequired(gffPartnerConfigTbl.getBtValidationRequired());
-        gffPartnerConfigTblStaging.setFtValidationRequired(gffPartnerConfigTbl.getFtValidationRequired());
-        gffPartnerConfigTblStaging.setMrRequired(gffPartnerConfigTbl.getMrRequired());
-        gffPartnerConfigTblStaging.setEmrRequired(gffPartnerConfigTbl.getEmrRequired());
-        gffPartnerConfigTblStaging.setSemrRequired(gffPartnerConfigTbl.getSemrRequired());
-        gffPartnerConfigTblStaging.setHrRequired(gffPartnerConfigTbl.getHrRequired());
-        gffPartnerConfigTblStaging.setEhrRequired(gffPartnerConfigTbl.getEhrRequired());
-        gffPartnerConfigTblStaging.setCreDtTm(createdDateTime);
-        gffPartnerConfigTblStaging.setLastUpdtUsr(gffPartnerConfigTbl.getCreatedBy()!=null?gffPartnerConfigTbl.getCreatedBy():SplitterDataStagingConstants.H2H);
-        gffPartnerConfigTblStaging.setLastUpdtTm(createdDateTime);
-        gffPartnerConfigTblStaging.setRequestType(SplitterDataStagingConstants.ADD);
-        gffPartnerConfigTblStaging.setRequestStatus((activeProfile.equalsIgnoreCase(SplitterDataConstants.PROD))?
-                SplitterDataStagingConstants.PENDING : SplitterDataStagingConstants.APPROVED);
-        gffPartnerConfigTblStaging.setVersionTrackNumber(SplitterDataStagingConstants.ZERO);
-        gffPartnerConfigTblStaging.setMkrCkrRemarks(SplitterDataStagingConstants.Y);
-        return gffPartnerConfigTblStaging;
+        List<TpaTemplateMapStaging> mapStagings = new ArrayList<>();
+        request.getPayments().getTpaTemplateMap().stream().forEach(tpaTempMap ->{
+            TpaTemplateMapStaging tpaTemplateMapStaging = new TpaTemplateMapStaging();
+            tpaTemplateMapStaging. setPtnrId(tpaTempMap.getPartnerId());
+            tpaTemplateMapStaging. setFileDataType(tpaTempMap.getFileDataType());
+            tpaTemplateMapStaging. setFileDataFmt(tpaTempMap.getFileDataFmt());
+            tpaTemplateMapStaging. setTpaTemplateNm(tpaTempMap.getTpaTemplateNm());
+            tpaTemplateMapStaging. setLastUpdtUsr(tpaTempMap.getLastupdateUser()!=null?tpaTempMap.getLastupdateUser():SplitterDataStagingConstants.H2H);
+            tpaTemplateMapStaging. setLastUpdtTm(createdDateTime);
+            tpaTemplateMapStaging. setRequestType(SplitterDataStagingConstants.ADD);
+            tpaTemplateMapStaging. setRequestStatus((activeProfile.equalsIgnoreCase(SplitterDataConstants.PROD))?
+                    SplitterDataStagingConstants.PENDING : SplitterDataStagingConstants.APPROVED);
+            tpaTemplateMapStaging. setVersionTrackNumber(SplitterDataStagingConstants.ZERO);
+            tpaTemplateMapStaging. setMkrCkrRemarks(SplitterDataStagingConstants.Y);
+            mapStagings.add(tpaTemplateMapStaging);
+        });
+
+        return mapStagings;
+
     }
-
-
-
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class YourClassNameTest {
-
-    private YourClassName yourClassInstance;
-
-    @BeforeEach
-    void setUp() {
-        yourClassInstance = new YourClassName();
-    }
-
-    @Test
-    void testGffPartnerConfigTblStagingMapping_ProdProfile() {
-        // Mock the current date-time
-        String expectedDateTime = "2023-01-01T00:00:00";
-        try (MockedStatic<HelperUtility> mockedHelperUtility = mockStatic(HelperUtility.class)) {
-            mockedHelperUtility.when(HelperUtility::getCurrentDateTime).thenReturn(expectedDateTime);
-
-            // Create mock GffPartnerConfigTbl
-            GffPartnerConfigTbl gffPartnerConfigTbl = new GffPartnerConfigTbl();
-            gffPartnerConfigTbl.setPartnerId("partnerId123");
-            gffPartnerConfigTbl.setSndrId("sndrId123");
-            gffPartnerConfigTbl.setBtValidationRequired(true);
-            gffPartnerConfigTbl.setFtValidationRequired(true);
-            gffPartnerConfigTbl.setMrRequired(false);
-            gffPartnerConfigTbl.setEmrRequired(false);
-            gffPartnerConfigTbl.setSemrRequired(true);
-            gffPartnerConfigTbl.setHrRequired(true);
-            gffPartnerConfigTbl.setEhrRequired(false);
-            gffPartnerConfigTbl.setCreatedBy("user123");
-
-            // Create mock SplitterDataStagingEncapRequest
-            SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
-            PaymentData payments = new PaymentData();
-            payments.setGffPartnerConfigTbl(gffPartnerConfigTbl);
-            request.setPayments(payments);
-
-            // Active profile is "prod"
-            String activeProfile = "prod";
-
-            // Act
-            GffPartnerConfigTblStaging result = yourClassInstance.gffPartnerConfigTblStagingMapping(request, activeProfile);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals("partnerId123", result.getPtnrId());
-            assertEquals(SplitterDataStagingConstants.GFF, result.getPtnrType());
-            assertEquals("sndrId123", result.getSndrId());
-            assertTrue(result.getBtValidationRequired());
-            assertTrue(result.getFtValidationRequired());
-            assertFalse(result.getMrRequired());
-            assertFalse(result.getEmrRequired());
-            assertTrue(result.getSemrRequired());
-            assertTrue(result.getHrRequired());
-            assertFalse(result.getEhrRequired());
-            assertEquals(expectedDateTime, result.getCreDtTm());
-            assertEquals("user123", result.getLastUpdtUsr());
-            assertEquals(expectedDateTime, result.getLastUpdtTm());
-            assertEquals(SplitterDataStagingConstants.ADD, result.getRequestType());
-            assertEquals(SplitterDataStagingConstants.PENDING, result.getRequestStatus());
-            assertEquals(SplitterDataStagingConstants.ZERO, result.getVersionTrackNumber());
-            assertEquals(SplitterDataStagingConstants.Y, result.getMkrCkrRemarks());
-        }
-    }
-
-    @Test
-    void testGffPartnerConfigTblStagingMapping_NonProdProfile() {
-        // Mock the current date-time
-        String expectedDateTime = "2023-01-01T00:00:00";
-        try (MockedStatic<HelperUtility> mockedHelperUtility = mockStatic(HelperUtility.class)) {
-            mockedHelperUtility.when(HelperUtility::getCurrentDateTime).thenReturn(expectedDateTime);
-
-            // Create mock GffPartnerConfigTbl
-            GffPartnerConfigTbl gffPartnerConfigTbl = new GffPartnerConfigTbl();
-            gffPartnerConfigTbl.setPartnerId("partnerId456");
-            gffPartnerConfigTbl.setSndrId("sndrId456");
-            gffPartnerConfigTbl.setBtValidationRequired(false);
-            gffPartnerConfigTbl.setFtValidationRequired(false);
-            gffPartnerConfigTbl.setMrRequired(true);
-            gffPartnerConfigTbl.setEmrRequired(true);
-            gffPartnerConfigTbl.setSemrRequired(false);
-            gffPartnerConfigTbl.setHrRequired(false);
-            gffPartnerConfigTbl.setEhrRequired(true);
-            gffPartnerConfigTbl.setCreatedBy(null); // No createdBy
-
-            // Create mock SplitterDataStagingEncapRequest
-            SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
-            PaymentData payments = new PaymentData();
-            payments.setGffPartnerConfigTbl(gffPartnerConfigTbl);
-            request.setPayments(payments);
-
-            // Active profile is "dev"
-            String activeProfile = "dev";
-
-            // Act
-            GffPartnerConfigTblStaging result = yourClassInstance.gffPartnerConfigTblStagingMapping(request, activeProfile);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals("partnerId456", result.getPtnrId());
-            assertEquals(SplitterDataStagingConstants.GFF, result.getPtnrType());
-            assertEquals("sndrId456", result.getSndrId());
-            assertFalse(result.getBtValidationRequired());
-            assertFalse(result.getFtValidationRequired());
-            assertTrue(result.getMrRequired());
-            assertTrue(result.getEmrRequired());
-            assertFalse(result.getSemrRequired());
-            assertFalse(result.getHrRequired());
-            assertTrue(result.getEhrRequired());
-            assertEquals(expectedDateTime, result.getCreDtTm());
-            assertEquals(SplitterDataStagingConstants.H2H, result.getLastUpdtUsr()); // No createdBy, should default to "H2H"
-            assertEquals(expectedDateTime, result.getLastUpdtTm());
-            assertEquals(SplitterDataStagingConstants.ADD, result.getRequestType());
-            assertEquals(SplitterDataStagingConstants.APPROVED, result.getRequestStatus());
-            assertEquals(SplitterDataStagingConstants.ZERO, result.getVersionTrackNumber());
-            assertEquals(SplitterDataStagingConstants.Y, result.getMkrCkrRemarks());
-        }
-    }
-}
-
