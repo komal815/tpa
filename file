@@ -19,4 +19,145 @@ public List<TpaTemplateMapStaging> tpaTemplateMapStagingMapping(SplitterDataStag
 
         return mapStagings;
 
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import java.util.List;
+import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class YourClassNameTest {
+
+    private YourClassName yourClassInstance;
+
+    @BeforeEach
+    void setUp() {
+        yourClassInstance = new YourClassName();
+    }
+
+    @Test
+    void testTpaTemplateMapStagingMapping_ProdProfile() {
+        // Mock the current date-time
+        String expectedDateTime = "2023-01-01T00:00:00";
+        try (MockedStatic<HelperUtility> mockedHelperUtility = mockStatic(HelperUtility.class)) {
+            mockedHelperUtility.when(HelperUtility::getCurrentDateTime).thenReturn(expectedDateTime);
+
+            // Create mock TpaTemplateMap
+            List<TpaTemplateMap> tpaTemplateMapList = new ArrayList<>();
+            TpaTemplateMap tpaTemplateMap1 = new TpaTemplateMap();
+            tpaTemplateMap1.setPartnerId("partnerId123");
+            tpaTemplateMap1.setFileDataType("dataType1");
+            tpaTemplateMap1.setFileDataFmt("format1");
+            tpaTemplateMap1.setTpaTemplateNm("template1");
+            tpaTemplateMap1.setLastupdateUser("user123");
+            tpaTemplateMapList.add(tpaTemplateMap1);
+
+            TpaTemplateMap tpaTemplateMap2 = new TpaTemplateMap();
+            tpaTemplateMap2.setPartnerId("partnerId456");
+            tpaTemplateMap2.setFileDataType("dataType2");
+            tpaTemplateMap2.setFileDataFmt("format2");
+            tpaTemplateMap2.setTpaTemplateNm("template2");
+            // No lastUpdateUser, should default to H2H
+            tpaTemplateMapList.add(tpaTemplateMap2);
+
+            // Create mock SplitterDataStagingEncapRequest
+            SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
+            PaymentData payments = new PaymentData();
+            payments.setTpaTemplateMap(tpaTemplateMapList);
+            request.setPayments(payments);
+
+            // Active profile is "prod"
+            String activeProfile = "prod";
+
+            // Act
+            List<TpaTemplateMapStaging> result = yourClassInstance.tpaTemplateMapStagingMapping(request, activeProfile);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(2, result.size());
+
+            // Check the first item
+            TpaTemplateMapStaging staging1 = result.get(0);
+            assertEquals("partnerId123", staging1.getPtnrId());
+            assertEquals("dataType1", staging1.getFileDataType());
+            assertEquals("format1", staging1.getFileDataFmt());
+            assertEquals("template1", staging1.getTpaTemplateNm());
+            assertEquals("user123", staging1.getLastUpdtUsr());
+            assertEquals(expectedDateTime, staging1.getLastUpdtTm());
+            assertEquals(SplitterDataStagingConstants.ADD, staging1.getRequestType());
+            assertEquals(SplitterDataStagingConstants.PENDING, staging1.getRequestStatus());
+            assertEquals(SplitterDataStagingConstants.ZERO, staging1.getVersionTrackNumber());
+            assertEquals(SplitterDataStagingConstants.Y, staging1.getMkrCkrRemarks());
+
+            // Check the second item
+            TpaTemplateMapStaging staging2 = result.get(1);
+            assertEquals("partnerId456", staging2.getPtnrId());
+            assertEquals("dataType2", staging2.getFileDataType());
+            assertEquals("format2", staging2.getFileDataFmt());
+            assertEquals("template2", staging2.getTpaTemplateNm());
+            assertEquals(SplitterDataStagingConstants.H2H, staging2.getLastUpdtUsr());  // Default to H2H
+            assertEquals(expectedDateTime, staging2.getLastUpdtTm());
+            assertEquals(SplitterDataStagingConstants.ADD, staging2.getRequestType());
+            assertEquals(SplitterDataStagingConstants.PENDING, staging2.getRequestStatus());
+            assertEquals(SplitterDataStagingConstants.ZERO, staging2.getVersionTrackNumber());
+            assertEquals(SplitterDataStagingConstants.Y, staging2.getMkrCkrRemarks());
+        }
+    }
+
+    @Test
+    void testTpaTemplateMapStagingMapping_NonProdProfile() {
+        // Mock the current date-time
+        String expectedDateTime = "2023-01-01T00:00:00";
+        try (MockedStatic<HelperUtility> mockedHelperUtility = mockStatic(HelperUtility.class)) {
+            mockedHelperUtility.when(HelperUtility::getCurrentDateTime).thenReturn(expectedDateTime);
+
+            // Create mock TpaTemplateMap
+            List<TpaTemplateMap> tpaTemplateMapList = new ArrayList<>();
+            TpaTemplateMap tpaTemplateMap1 = new TpaTemplateMap();
+            tpaTemplateMap1.setPartnerId("partnerId789");
+            tpaTemplateMap1.setFileDataType("dataType3");
+            tpaTemplateMap1.setFileDataFmt("format3");
+            tpaTemplateMap1.setTpaTemplateNm("template3");
+            tpaTemplateMap1.setLastupdateUser(null);  // No user
+            tpaTemplateMapList.add(tpaTemplateMap1);
+
+            // Create mock SplitterDataStagingEncapRequest
+            SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
+            PaymentData payments = new PaymentData();
+            payments.setTpaTemplateMap(tpaTemplateMapList);
+            request.setPayments(payments);
+
+            // Active profile is "dev"
+            String activeProfile = "dev";
+
+            // Act
+            List<TpaTemplateMapStaging> result = yourClassInstance.tpaTemplateMapStagingMapping(request, activeProfile);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(1, result.size());
+
+            // Check the first item
+            TpaTemplateMapStaging staging1 = result.get(0);
+            assertEquals("partnerId789", staging1.getPtnrId());
+            assertEquals("dataType3", staging1.getFileDataType());
+            assertEquals("format3", staging1.getFileDataFmt());
+            assertEquals("template3", staging1.getTpaTemplateNm());
+            assertEquals(SplitterDataStagingConstants.H2H, staging1.getLastUpdtUsr());  // Default to H2H
+            assertEquals(expectedDateTime, staging1.getLastUpdtTm());
+            assertEquals(SplitterDataStagingConstants.ADD, staging1.getRequestType());
+            assertEquals(SplitterDataStagingConstants.APPROVED, staging1.getRequestStatus());  // Approved for non-prod
+            assertEquals(SplitterDataStagingConstants.ZERO, staging1.getVersionTrackNumber());
+            assertEquals(SplitterDataStagingConstants.Y, staging1.getMkrCkrRemarks());
+        }
+    }
+}
+
+
     }
