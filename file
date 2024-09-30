@@ -18,3 +18,59 @@ if(null!=request && null!=request.getAcks() && null!=request.getAcks().getH2hEma
             });
         }
         return splitterDataResponses;
+
+
+
+@Test
+    void testAddStagingTablesData_ProdEnvironment() {
+        // Mock data and input request
+        SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
+        request.setAcks(new AckObject(new H2hEmailRoutingLookup()));
+
+        String activeProfile = "prod";
+        when(environment.getProperty("spring.profiles.active")).thenReturn(activeProfile);
+
+        List<H2hMultiAckRoutingLookupStaging> routingLookups = new ArrayList<>();
+        routingLookups.add(new H2hMultiAckRoutingLookupStaging());
+        
+        when(splitterDataStagingMapper.h2hMultiAckRoutingLookupStagingMapping(any(), eq(activeProfile)))
+            .thenReturn(routingLookups);
+        
+        StagingResponse stagingResponse = new StagingResponse();
+        when(service.createStagingRecord(any())).thenReturn(stagingResponse);
+        
+        // Call method under test
+        List<Response> responseList = yourService.addStagingTablesData(request);
+
+        // Verify interactions and assertions
+        verify(service, times(1)).createStagingRecord(any());
+        verify(splitterDataStagingMapper, times(1)).getH2hH2hMultiAckRoutingLookupDatas(any(), any(), any());
+        assertEquals(1, responseList.size());
+    }
+
+    @Test
+    void testAddStagingTablesData_NonProdEnvironment() {
+        // Mock data and input request
+        SplitterDataStagingEncapRequest request = new SplitterDataStagingEncapRequest();
+        request.setAcks(new AckObject(new H2hEmailRoutingLookup()));
+
+        String activeProfile = "dev";
+        when(environment.getProperty("spring.profiles.active")).thenReturn(activeProfile);
+
+        List<H2hMultiAckRoutingLookupStaging> routingLookups = new ArrayList<>();
+        routingLookups.add(new H2hMultiAckRoutingLookupStaging());
+        
+        when(splitterDataStagingMapper.h2hMultiAckRoutingLookupStagingMapping(any(), eq(activeProfile)))
+            .thenReturn(routingLookups);
+        
+        TableResponse tableResponse = new TableResponse();
+        when(service.createSplitterRecord(any())).thenReturn(tableResponse);
+        
+        // Call method under test
+        List<Response> responseList = yourService.addStagingTablesData(request);
+
+        // Verify interactions and assertions
+        verify(service, times(1)).createSplitterRecord(any());
+        verify(splitterDataStagingMapper, times(1)).getH2hH2hMultiAckRoutingLookupDatas(any(), any(), any());
+        assertEquals(1, responseList.size());
+    }
