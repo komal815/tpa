@@ -1,69 +1,20 @@
-@Override
-    public SplitterDataStagingEncapResponse addStagingTablesData(SplitterDataStagingEncapRequest request) {
-        SplitterDataStagingEncapResponse stagingEncapResponse = new SplitterDataStagingEncapResponse();
-        String requestId = HelperUtility.generateRequestId();
-        String activeProfile = environment.getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE);
-        log.info("New request started {}",  requestId);
-        TABLE_NAMES.stream().forEach(tableName -> createStagingRecord(tableName, request, requestId) );
-        stagingEncapResponse.setRequestIds(requestId);
-        stagingEncapResponse.setHttpStatus(HttpStatus.OK);
-        stagingEncapResponse.setMessage("Successfully Added all Data..!");
-        log.info("New request ended {}",  requestId);
-        return stagingEncapResponse;
-    }
-
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.core.env.Environment;
-import org.springframework.http.HttpStatus;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-class SplitterServiceTest {
-
-    @InjectMocks
-    private SplitterService splitterService; // Assuming the class is named SplitterService
-
-    @Mock
-    private HelperUtility helperUtility;
-
-    @Mock
-    private Environment environment;
-
-    @Mock
-    private SplitterDataStagingEncapRequest request;
-
-    private static final List<String> TABLE_NAMES = Arrays.asList("table1", "table2", "table3");
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
-    @Test
-    void testAddStagingTablesData() {
-        // Arrange
-        String requestId = "12345";
-        when(helperUtility.generateRequestId()).thenReturn(requestId);
-        when(environment.getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE)).thenReturn("test");
-
-        // Act
-        SplitterDataStagingEncapResponse response = splitterService.addStagingTablesData(request);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(requestId, response.getRequestIds());
-        assertEquals(HttpStatus.OK, response.getHttpStatus());
-        assertEquals("Successfully Added all Data..!", response.getMessage());
-
-        // Verify that createStagingRecord was called for each table
-        TABLE_NAMES.forEach(tableName -> verify(splitterService, times(1)).createStagingRecord(eq(tableName), eq(request), eq(requestId)));
-        verify(helperUtility, times(1)).generateRequestId();
-        verify(environment, times(1)).getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE);
-    }
-}
-
+if(null!=request && null!=request.getAcks() && null!=request.getAcks().getH2hEmailRoutingLookup() ) {
+            List<H2hMultiAckRoutingLookupStaging> h2hMultiAckRoutingLookupStagings = splitterDataStagingMapper.h2hMultiAckRoutingLookupStagingMapping(request, activeProfile);
+            h2hMultiAckRoutingLookupStagings.stream().forEach(routingLookup -> {
+                StagingResponse stagingResponse = null;
+                TableResponse tableResponse = null;
+                AddUpdateStagingRequest addUpdateStagingRequest = splitterDataStagingMapper.getH2hH2hMultiAckRoutingLookupDatas(routingLookup,
+                        SplitterDataStagingConstants.ADD, routingLookup.getCreatedBy());
+                if (StringUtils.equalsIgnoreCase(SplitterDataConstants.PROD, activeProfile)) {
+                    stagingResponse = service.createStagingRecord(addUpdateStagingRequest);
+                    addDataIntoTrackerTable(stagingResponse.getBody().getH2hMultiAckRoutingLookupStaging().getStagingId(),
+                            requestId, tableName + SplitterDataStagingConstants.STAGING, routingLookup.getCreatedBy(), activeProfile);
+                } else {
+                    tableResponse = service.createSplitterRecord(addUpdateStagingRequest);
+                    addDataIntoTrackerTable(tableResponse.getBody().getH2hMultiAckRoutingLookup().getSpltId(),
+                            requestId, tableName, routingLookup.getCreatedBy(), activeProfile);
+                }
+                splitterDataResponses.add(splitterDataStagingMapper.getDataMapping(stagingResponse, tableResponse));
+            });
+        }
+        return splitterDataResponses;
