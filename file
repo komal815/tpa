@@ -2,3 +2,25 @@ h2hSplitterPaymentAndAckRecords.stream().forEach(h2hSplitterPaymentAndAckRecord 
             if(h2hSplitterPaymentAndAckRecord.getStagingTableName().equals(SplitterDataConstants.H2H_MULTI_ACK_ROUTING_LOOKUP)){
                 deleteTableRecord(SplitterDataConstants.ROLLBACK_H2H_MULTI_ACK_ROUTING_LOOKUP,h2hSplitterPaymentAndAckRecord.getStagingId());
             } 
+
+
+@Test
+    void testProcessRecords_ConditionMet() {
+        // Arrange: Create mock data
+        H2hSplitterPaymentAndAckRecord record1 = new H2hSplitterPaymentAndAckRecord();
+        record1.setStagingTableName(SplitterDataConstants.H2H_MULTI_ACK_ROUTING_LOOKUP);
+        record1.setStagingId("stagingId1");
+
+        H2hSplitterPaymentAndAckRecord record2 = new H2hSplitterPaymentAndAckRecord();
+        record2.setStagingTableName("SomeOtherTable");
+        record2.setStagingId("stagingId2");
+
+        List<H2hSplitterPaymentAndAckRecord> records = Arrays.asList(record1, record2);
+
+        // Act: Call the method under test
+        records.stream().forEach(h2hSplitterPaymentAndAckRecord -> {
+            if(h2hSplitterPaymentAndAckRecord.getStagingTableName().equals(SplitterDataConstants.H2H_MULTI_ACK_ROUTING_LOOKUP)) {
+                yourService.deleteTableRecord(SplitterDataConstants.ROLLBACK_H2H_MULTI_ACK_ROUTING_LOOKUP,
+                        h2hSplitterPaymentAndAckRecord.getStagingId());
+            }
+        });
