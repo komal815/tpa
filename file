@@ -11,3 +11,59 @@
         log.info("New request ended {}",  requestId);
         return stagingEncapResponse;
     }
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+class SplitterServiceTest {
+
+    @InjectMocks
+    private SplitterService splitterService; // Assuming the class is named SplitterService
+
+    @Mock
+    private HelperUtility helperUtility;
+
+    @Mock
+    private Environment environment;
+
+    @Mock
+    private SplitterDataStagingEncapRequest request;
+
+    private static final List<String> TABLE_NAMES = Arrays.asList("table1", "table2", "table3");
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testAddStagingTablesData() {
+        // Arrange
+        String requestId = "12345";
+        when(helperUtility.generateRequestId()).thenReturn(requestId);
+        when(environment.getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE)).thenReturn("test");
+
+        // Act
+        SplitterDataStagingEncapResponse response = splitterService.addStagingTablesData(request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(requestId, response.getRequestIds());
+        assertEquals(HttpStatus.OK, response.getHttpStatus());
+        assertEquals("Successfully Added all Data..!", response.getMessage());
+
+        // Verify that createStagingRecord was called for each table
+        TABLE_NAMES.forEach(tableName -> verify(splitterService, times(1)).createStagingRecord(eq(tableName), eq(request), eq(requestId)));
+        verify(helperUtility, times(1)).generateRequestId();
+        verify(environment, times(1)).getProperty(SplitterDataConstants.SPRING_PROFILE_ACTIVE);
+    }
+}
+
